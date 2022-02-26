@@ -44,9 +44,10 @@ namespace Memory
         void init(uint64 cr3);
         inline uint64 getKernelVirtualAddress(uint64 physicalAddress)
         {
-            return physicalAddress + KERNEL_VMA;
+            return physicalAddress + 0xFFFF'8000'0000'0000;
         }
         void mapPage(uint64 physicalAddress, uint64 virtualAddress, uint64 flags);
+        void unmapPage(uint64 virtualAddress);
     } // namespace Virtual
 
     inline void init(uint64 cr3)

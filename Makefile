@@ -12,7 +12,7 @@ KERNEL_OBJS=$(KERNEL_ASM_SCRS:.asm=.o) $(KERNEL_CPP_SCRS:.cpp=.o)
 all: clean qemu
 
 qemu: myos.iso
-	qemu-system-x86_64 -cdrom myos.iso -smp 4 -monitor stdio
+	qemu-system-x86_64 -cdrom myos.iso -smp 4 -monitor stdio -cpu max,+pdpe1gb
 
 bochs: myos.iso
 	bochs 

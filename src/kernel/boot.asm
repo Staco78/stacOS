@@ -11,6 +11,9 @@ KERNEL_VIRTUAL_ADDR equ 0xFFFFFFFF80000000 ; -2Go
 KERNEL_PML4_INDEX equ ((KERNEL_VIRTUAL_ADDR >> 39) & 0x1FF) ; 511
 KERNEL_PDPT_INDEX equ ((KERNEL_VIRTUAL_ADDR >> 30) & 0x1FF) ; 510
 
+PHYSICAL_MAPPING_ADDR equ 0xFFFF800000000000
+PHYSICAL_MAPPING_PML4_INDEX equ ((PHYSICAL_MAPPING_ADDR >> 39) & 0x1FF) ; 256
+
 section .multiboot
 align 8
 multiboot_start:
@@ -30,6 +33,9 @@ section .boot.data
 no_64_error_msg: db "Fatal: your CPU doesn't support 64 bits"
 no_64_error_msg_len equ $ - no_64_error_msg
 
+no_1gb_pages_msg: db "Fatal: your CPU doesn't support 1GB pages"
+no_1gb_pages_msg_len equ $ - no_1gb_pages_msg
+
 
 align 4096
 kernel_pml4:
@@ -45,6 +51,10 @@ times 512 dq 0
 
 align 4096
 kernel_PDT:
+times 512 dq 0
+
+align 4096
+physical_pml3:
 times 512 dq 0
 
 multiboot_struct dq 0
@@ -90,20 +100,28 @@ section .boot.text
 
 
 VIDEO_PTR equ 0xB8000
-no_64:
+%macro panic 2
 cli
-mov eax, no_64_error_msg
+mov eax, %1
 mov ebx, 0
-no_64_loop:
+%1_loop:
 mov cl, [eax + ebx]
 mov [VIDEO_PTR + ebx * 2], cl
 inc ebx
-cmp ebx, no_64_error_msg_len
-jl no_64_loop
+cmp ebx, %2
+jl %1_loop
 
-
+%1_loop_hlt:
 hlt
-jmp no_64
+jmp %1_loop_hlt
+%endmacro
+
+
+no_64:
+panic no_64_error_msg, no_64_error_msg_len
+
+no_1gb_pages:
+panic no_1gb_pages_msg, no_1gb_pages_msg_len
 
 
 global _start
@@ -121,6 +139,8 @@ mov eax, 0x80000001
 cpuid
 test edx, 1 << 29
 jz no_64
+test edx, 1 << 26
+jz no_1gb_pages
 
 
 ;setup paging
@@ -177,11 +197,22 @@ entry64bits:
 
 section .text
 entryUpper:
-    ; mov rax, [GDT64.Address]
-    ; add rax, 0xFFFFFFFF80000000
-    ; mov [GDT64.Address], rax
     add qword [GDT64.Address], 0xFFFFFFFF80000000
     lgdt [GDT64.Pointer + 0xFFFFFFFF80000000]
+
+    ; we assume we have 1GB pages
+    mov rax, 131
+    mov rbx, physical_pml3
+    loop_physical_pml3:
+    mov [rbx], rax
+    add rax, 0x40000000
+    add rbx, 8
+    cmp rbx, physical_pml3 + 4096
+    jl loop_physical_pml3
+
+    mov rax, physical_pml3 
+    or rax, 3
+    mov [kernel_pml4 + PHYSICAL_MAPPING_PML4_INDEX * 8], rax
 
     mov rdi, [multiboot_struct]
     add rdi, KERNEL_VIRTUAL_ADDR

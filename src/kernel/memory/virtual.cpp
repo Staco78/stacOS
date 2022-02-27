@@ -60,7 +60,8 @@ namespace Memory
             uint tableEntryIndex = (virtualAddress >> 12) & 0x1FF;
             PML *tableEntry = &((PML *)getKernelVirtualAddress(UNSHIFT(pml2Entry->bits.address)))[tableEntryIndex];
             if (tableEntry->bits.present)
-                panic("mapPage: page already mapped");
+                // panic("mapPage: page already mapped");
+                Terminal::kprintf("mapPage: page already mapped: %x\n", virtualAddress);
 
             tableEntry->raw = physicalAddress | flags | 1;
         }

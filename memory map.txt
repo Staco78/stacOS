@@ -1,0 +1,13 @@
+Virtual memory:
+
+0xFFFF'8000'0000'0000:
+Physical memory linear mapping
+Size: 512GB
+
+0xFFFF'FFFF'0000'0000:
+Kernel heap
+Size: 2GB
+
+0xFFFF'FFFF'8000'0000:
+Kernel code and data space
+Size: 2GB

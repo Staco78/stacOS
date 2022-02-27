@@ -1,18 +1,27 @@
 GCC=x86_64-elf-gcc
 LD=x86_64-elf-ld
 
-GCC_FLAGS=-ffreestanding -Wall -mcmodel=large -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -Isrc/include -lgcc -fpermissive
-LD_FLAGS=-z max-page-size=0x1000 -nostdlib 
+C_FLAGS=-ffreestanding -Wall -mcmodel=large -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -Isrc/include -lgcc -g
+GCC_FLAGS=$(C_FLAGS) -fpermissive
+LD_FLAGS=-z max-page-size=0x1000 -nostdlib -g
 
+KERNEL_C_SCRS=$(wildcard src/kernel/*.c) $(wildcard src/kernel/**/*.c)
 KERNEL_CPP_SCRS=$(wildcard src/kernel/*.cpp) $(wildcard src/kernel/**/*.cpp)
 KERNEL_ASM_SCRS=$(wildcard src/kernel/*.asm)
-KERNEL_OBJS=$(KERNEL_ASM_SCRS:.asm=.o) $(KERNEL_CPP_SCRS:.cpp=.o)
+KERNEL_OBJS=$(KERNEL_ASM_SCRS:.asm=.o) $(KERNEL_CPP_SCRS:.cpp=.o) ${KERNEL_C_SCRS:.c=.o}
 
+
+QEMU_FLAGS=-cdrom myos.iso -smp 4 -cpu max,+pdpe1gb -m 32
 
 all: clean qemu
 
+build: myos.iso
+
 qemu: myos.iso
-	qemu-system-x86_64 -cdrom myos.iso -smp 4 -monitor stdio -cpu max,+pdpe1gb
+	qemu-system-x86_64 $(QEMU_FLAGS)
+
+debug: myos.iso
+	qemu-system-x86_64 -s -S -boot d $(QEMU_FLAGS) -monitor stdio
 
 bochs: myos.iso
 	bochs 
@@ -29,6 +38,9 @@ dir:
 
 %.o: %.cpp
 	$(GCC) -c $< -o $@ $(GCC_FLAGS)
+
+%.o: %.c
+	$(GCC) -c $< -o $@ $(C_FLAGS)
 
 %.o: %.asm
 	nasm -felf64 $< -o $@

@@ -1,5 +1,6 @@
 #include <interrupts.h>
 #include <panic.h>
+#include <asm.h>
 
 namespace Interrupts
 {
@@ -124,6 +125,10 @@ namespace Interrupts
 
         void init()
         {
+            // disable PIC
+            outb(0xA1, 0xFF);
+            outb(0x21, 0xFF);
+
             IDT::setEntry(0, (uint64)_0);
             IDT::setEntry(1, (uint64)_1);
             IDT::setEntry(2, (uint64)_2);

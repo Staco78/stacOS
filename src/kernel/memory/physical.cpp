@@ -107,6 +107,12 @@ namespace Memory
             setUsed(pages / 4096, count);
             return pages;
         }
+
+        void freePages(uint64 address, uint64 count)
+        {
+            assert((address & 0xFFF) == 0);
+            setFree(address / 4096, count);
+        }
     } // namespace Physical
 
 } // namespace Memory

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <types.h>
+#include <liballoc.h>
 
 #define KERNEL_VMA 0xFFFFFFFF80000000
 
@@ -13,6 +14,7 @@ namespace Memory
         void setFree(uint64 index, uint64 length = 1);
         uint64 findFreePages(uint64 count = 1, uint64 alignment = 4096);
         uint64 getFreePages(uint64 count = 1, uint64 alignment = 4096);
+        void freePages(uint64 address, uint64 count = 1);
     } // namespace Physical
 
     namespace Virtual
@@ -31,14 +33,23 @@ namespace Memory
                 uint64 _available1 : 1;
                 uint64 size : 1;
                 uint64 global : 1;
-                uint64 cowPending : 1;
-                uint64 _available2 : 2;
+                uint64 _available2 : 3;
                 uint64 address : 28;
                 uint64 reserved : 12;
                 uint64 _available3 : 11;
                 uint64 nx : 1;
             } bits;
             uint64 raw;
+        };
+
+        enum PageFlags
+        {
+            WRITE = 2,
+            USER = 4,
+            WRITE_THROUGH = 8,
+            NO_CACHE = 16,
+            GLOBAL = 256,
+            NX = 0x8000000000000000
         };
 
         void init(uint64 cr3);
@@ -50,9 +61,15 @@ namespace Memory
         void unmapPage(uint64 virtualAddress);
     } // namespace Virtual
 
+    namespace Heap
+    {
+        void init();
+    } // namespace Heap
+
     inline void init(uint64 cr3)
     {
         Physical::init();
         Virtual::init(cr3);
+        Heap::init();
     }
 } // namespace Memory

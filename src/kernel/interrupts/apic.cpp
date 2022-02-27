@@ -39,13 +39,13 @@ namespace Interrupts
                 return false;
             }
 
-            RSDT *rsdt = (RSDT *)(rsdp->rsdtAddress + KERNEL_VMA);
+            RSDT *rsdt = (RSDT *)Memory::Virtual::getKernelVirtualAddress(rsdp->rsdtAddress);
 
             uint64 i = 0;
 
             for (; i < (rsdt->length - sizeof(RSDT)) / 4; i++)
             {
-                if (memcmp(((RSDT *)(rsdt->pointerToOtherSDT[i] + KERNEL_VMA))->signature, "APIC", 4))
+                if (memcmp(((RSDT *)Memory::Virtual::getKernelVirtualAddress(rsdt->pointerToOtherSDT[i]))->signature, "APIC", 4))
                 {
                     goto found;
                 }
@@ -55,7 +55,7 @@ namespace Interrupts
             return false;
 
         found:
-            MADT *madt = (MADT *)(rsdt->pointerToOtherSDT[i] + KERNEL_VMA);
+            MADT *madt = (MADT *)Memory::Virtual::getKernelVirtualAddress(rsdt->pointerToOtherSDT[i]);
 
             uint64 localAPICAddress = madt->lAPICAddress;
 
@@ -71,7 +71,7 @@ namespace Interrupts
                 }
             }
 
-            localAPICAddress = localAPICAddress + KERNEL_VMA;
+            localAPICAddress = Memory::Virtual::getKernelVirtualAddress(localAPICAddress);
 
             Terminal::kprintf("%x", localAPICAddress);
 

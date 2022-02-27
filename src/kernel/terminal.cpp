@@ -9,7 +9,7 @@ namespace Terminal
 {
     static uint32 x = 0;
     static uint32 y = 0;
-    static uint64 video_address = KERNEL_VMA + 0xB8000;
+    static uint64 video_address = Memory::Virtual::getKernelVirtualAddress(0xB8000);
     static uint32 width = 80;
     static uint32 height = 25;
     static uint8 style = 0x07;
@@ -21,7 +21,7 @@ namespace Terminal
             return;
         if (framebuffer->framebuffer_type != 2)
             return;
-        video_address = framebuffer->address + KERNEL_VMA;
+        video_address = Memory::Virtual::getKernelVirtualAddress(framebuffer->address);
         width = framebuffer->width;
         height = framebuffer->height;
         style = 0x07;

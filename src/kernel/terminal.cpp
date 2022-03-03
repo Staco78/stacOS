@@ -4,6 +4,7 @@
 #include <multibootInformations.h>
 #include <lib/mem.h>
 #include <memory.h>
+#include <debug.h>
 
 namespace Terminal
 {
@@ -31,7 +32,7 @@ namespace Terminal
     {
         if (y >= height)
         {
-            y = 0;
+            y = height - 1;
             memcpy((void *)video_address, (void *)(video_address + width * 2), (height - 1) * width * 2);
             memset((void *)(video_address + (height - 1) * width * 2), 0, width * 2);
         }

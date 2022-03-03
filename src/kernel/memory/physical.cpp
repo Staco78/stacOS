@@ -1,5 +1,4 @@
 #include <memory.h>
-#include <multibootInformations.h>
 #include <terminal.h>
 #include <lib/mem.h>
 #include <panic.h>
@@ -16,9 +15,11 @@ namespace Memory
         static uint64 bitmapSize;
         static uint8 *bitmap;
 
+        extern "C" uint64 physical_pml2; // from boot.asm
+
         bool get(uint64 index);
 
-        void init()
+        void init(MultibootInformations::MultibootInfo *multibootStruct)
         {
             MemoryMap *memoryMap = (MemoryMap *)MultibootInformations::getEntry(MEMORY_MAP);
 
@@ -38,16 +39,34 @@ namespace Memory
                 bitmapSize |= 0xFFF;
                 bitmapSize++;
             }
+
+            memcpy((void *)((uint64)&_end + bitmapSize), multibootStruct, multibootStruct->total_size);
+            multibootStruct = (MultibootInfo *)((uint64)&_end + bitmapSize);
+            MultibootInformations::setStruct((void *)multibootStruct);
+
             memset(bitmap, 0xFF, bitmapSize);
+
+            uint64 multibootSize = multibootStruct->total_size;
+            if (multibootSize & 0xFFF)
+            {
+                multibootSize |= 0xFFF;
+                multibootSize++;
+            }
 
             for (uint i = 0; i < memoryMap->size / memoryMap->entrySize; i++)
             {
                 if (memoryMap->entries[i].type == MemoryType::available)
                     for (uint64 y = memoryMap->entries[i].baseAddress / 4096; y < (memoryMap->entries[i].baseAddress + memoryMap->entries[i].length) / 4096; y++)
                     {
-                        if (y >= ((uint64)&_end - KERNEL_VMA + bitmapSize) / 4096)
+                        if (y >= ((uint64)&_end - KERNEL_VMA + bitmapSize + multibootSize) / 4096)
                             setFree(y);
                     }
+            }
+
+            if (*(uint64 *)(Virtual::getKernelVirtualAddress((uint64)&physical_pml2)) == 0)
+            {
+                for (uint i = 0; i < 512; i++)
+                    setFree(((uint64)&physical_pml2) / 4096 + i);
             }
         }
 

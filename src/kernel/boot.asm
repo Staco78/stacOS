@@ -33,8 +33,8 @@ section .boot.data
 no_64_error_msg: db "Fatal: your CPU doesn't support 64 bits"
 no_64_error_msg_len equ $ - no_64_error_msg
 
-no_1gb_pages_msg: db "Fatal: your CPU doesn't support 1GB pages"
-no_1gb_pages_msg_len equ $ - no_1gb_pages_msg
+; no_1gb_pages_msg: db "Fatal: your CPU doesn't support 1GB pages"
+; no_1gb_pages_msg_len equ $ - no_1gb_pages_msg
 
 
 align 4096
@@ -56,6 +56,11 @@ times 512 dq 0
 align 4096
 physical_pml3:
 times 512 dq 0
+
+align 4096 
+global physical_pml2
+physical_pml2:
+times 0x40000 dq 0
 
 multiboot_struct dq 0
 
@@ -120,8 +125,8 @@ jmp %1_loop_hlt
 no_64:
 panic no_64_error_msg, no_64_error_msg_len
 
-no_1gb_pages:
-panic no_1gb_pages_msg, no_1gb_pages_msg_len
+; no_1gb_pages:
+; panic no_1gb_pages_msg, no_1gb_pages_msg_len
 
 
 global _start
@@ -139,8 +144,7 @@ mov eax, 0x80000001
 cpuid
 test edx, 1 << 29
 jz no_64
-test edx, 1 << 26
-jz no_1gb_pages
+
 
 
 ;setup paging
@@ -200,7 +204,11 @@ entryUpper:
     add qword [GDT64.Address], 0xFFFFFFFF80000000
     lgdt [GDT64.Pointer + 0xFFFFFFFF80000000]
 
-    ; we assume we have 1GB pages
+    mov eax, 0x80000001
+    cpuid
+    test edx, 1 << 26
+    jz no_1gb_pages
+
     mov rax, 131
     mov rbx, physical_pml3
     loop_physical_pml3:
@@ -210,6 +218,30 @@ entryUpper:
     cmp rbx, physical_pml3 + 4096
     jl loop_physical_pml3
 
+    jmp mapping_end
+
+no_1gb_pages:
+    mov rax, physical_pml2
+    or rax, 3
+    mov rbx, physical_pml3
+    loop_physical_pml3_:
+    mov [rbx], rax
+    add rax, 0x1000
+    add rbx, 8
+    cmp rbx, physical_pml3 + 4096
+    jl loop_physical_pml3_
+
+    mov rax, 131
+    mov rbx, physical_pml2
+    loop_physical_pml2:
+    mov [rbx], rax
+    add rax, 0x200000
+    add rbx, 8
+    cmp rbx, physical_pml2 + 0x40000
+    jl loop_physical_pml2
+
+
+mapping_end:
     mov rax, physical_pml3 
     or rax, 3
     mov [kernel_pml4 + PHYSICAL_MAPPING_PML4_INDEX * 8], rax
@@ -223,7 +255,6 @@ entryUpper:
     extern kernelMain
     call kernelMain
     halt:
-    cli
     hlt
     jmp halt
 

@@ -26,13 +26,13 @@ namespace Memory
 
 extern "C" int liballoc_lock()
 {
-    // Interrupts::disable();
+    Interrupts::disable();
     return 0;
 }
 
 extern "C" int liballoc_unlock()
 {
-    // Interrupts::enable();
+    Interrupts::enable();
     return 0;
 }
 
@@ -70,6 +70,7 @@ extern "C" int liballoc_free(void *ptr, size_t size)
     for (size_t i = baseIndex; i < size + baseIndex; i++)
     {
         Physical::freePages(physicalPages[i]);
+        unmapPage(heapAddress + i * 4096);
         physicalPages[i] = 0;
     }
     return 0;

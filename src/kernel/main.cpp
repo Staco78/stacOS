@@ -3,7 +3,7 @@
 #include <multibootInformations.h>
 #include <interrupts.h>
 #include <memory.h>
-#include <debug.h>
+#include <acpi.h>
 
 extern "C" void kernelMain(void *multiboot_struct, uint64 cr3)
 {
@@ -12,5 +12,8 @@ extern "C" void kernelMain(void *multiboot_struct, uint64 cr3)
     Interrupts::IDT::init();
     Interrupts::Exceptions::init();
 
-    Memory::init(cr3);
+    Memory::init(multiboot_struct, cr3);
+
+    ACPI::init();
+    Interrupts::init();
 }

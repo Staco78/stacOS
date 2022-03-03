@@ -3,16 +3,6 @@
 #include <lib/mem.h>
 #include <panic.h>
 
-// case (uint32)TagType::FRAMEBUFFER_INFO:
-//                 memcpy(&framebufferInfo, (void *)(addr + 8), sizeof(FramebufferInfo));
-//                 if (framebufferInfo.type != 2)
-//                     panic("Unsupported video mode");
-//                 break;
-
-//             case (uint32)TagType::MEMORY_MAP:
-//                 memoryMap = (MemoryMap *)(addr + 4);
-//                 break;
-
 namespace MultibootInformations
 {
 

@@ -2,14 +2,16 @@
 
 #include <types.h>
 #include <liballoc.h>
+#include <multibootInformations.h>
 
 #define KERNEL_VMA 0xFFFFFFFF80000000
+#define PHYSICAL_MEMORY_ADDR 0xFFFF'8000'0000'0000
 
 namespace Memory
 {
     namespace Physical
     {
-        void init();
+        void init(MultibootInformations::MultibootInfo *multibootStruct);
         void setUsed(uint64 index, uint64 length = 1);
         void setFree(uint64 index, uint64 length = 1);
         uint64 findFreePages(uint64 count = 1, uint64 alignment = 4096);
@@ -53,7 +55,7 @@ namespace Memory
         };
 
         void init(uint64 cr3);
-        inline uint64 getKernelVirtualAddress(uint64 physicalAddress)
+        constexpr inline uint64 getKernelVirtualAddress(uint64 physicalAddress)
         {
             return physicalAddress + 0xFFFF'8000'0000'0000;
         }
@@ -66,9 +68,9 @@ namespace Memory
         void init();
     } // namespace Heap
 
-    inline void init(uint64 cr3)
+    inline void init(void *multibootStruct, uint64 cr3)
     {
-        Physical::init();
+        Physical::init((MultibootInformations::MultibootInfo *)multibootStruct);
         Virtual::init(cr3);
         Heap::init();
     }

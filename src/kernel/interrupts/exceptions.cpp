@@ -1,6 +1,6 @@
 #include <interrupts.h>
 #include <panic.h>
-#include <asm.h>
+#include <devices/pic.h>
 
 namespace Interrupts
 {
@@ -125,9 +125,7 @@ namespace Interrupts
 
         void init()
         {
-            // disable PIC
-            outb(0xA1, 0xFF);
-            outb(0x21, 0xFF);
+            Devices::PIC::init(); // remap IRQ and disable it
 
             IDT::setEntry(0, (uint64)_0);
             IDT::setEntry(1, (uint64)_1);

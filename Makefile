@@ -5,13 +5,13 @@ C_FLAGS=-ffreestanding -Wall -mcmodel=large -mno-red-zone -mno-mmx -mno-sse -mno
 GCC_FLAGS=$(C_FLAGS) -fpermissive
 LD_FLAGS=-z max-page-size=0x1000 -nostdlib -g
 
-KERNEL_C_SCRS=$(wildcard src/kernel/*.c) $(wildcard src/kernel/**/*.c)
-KERNEL_CPP_SCRS=$(wildcard src/kernel/*.cpp) $(wildcard src/kernel/**/*.cpp)
-KERNEL_ASM_SCRS=$(wildcard src/kernel/*.asm)
+KERNEL_C_SCRS=$(shell find ./src/ -name *.c)
+KERNEL_CPP_SCRS=$(shell find ./src/ -name *.cpp)
+KERNEL_ASM_SCRS=$(shell find ./src/ -name *.asm)
 KERNEL_OBJS=$(KERNEL_ASM_SCRS:.asm=.o) $(KERNEL_CPP_SCRS:.cpp=.o) ${KERNEL_C_SCRS:.c=.o}
 
 
-QEMU_FLAGS=-cdrom myos.iso -smp 4 -cpu max,+pdpe1gb -m 32
+QEMU_FLAGS=-cdrom myos.iso -smp 4 -cpu max,+pdpe1gb -m 32 -monitor stdio
 
 all: clean qemu
 
@@ -21,15 +21,14 @@ qemu: myos.iso
 	qemu-system-x86_64 $(QEMU_FLAGS)
 
 debug: myos.iso
-	qemu-system-x86_64 -s -S -boot d $(QEMU_FLAGS) -monitor stdio
+	qemu-system-x86_64 -s -S -boot d $(QEMU_FLAGS)
 
 bochs: myos.iso
 	bochs 
 
 clean:
 	rm -rf	 iso 
-	rm -f ./**/**/*.o
-	rm -f ./**/**/**/*.o
+	find ./ -name *.o -delete
 	rm -f myos.bin
 	rm -f myos.iso
 

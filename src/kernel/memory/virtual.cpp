@@ -26,6 +26,11 @@ namespace Memory
             currentCr3 = cr3;
         }
 
+        uint64 getCr3()
+        {
+            return currentCr3;
+        }
+
         void mapPage(uint64 physicalAddress, uint64 virtualAddress, uint64 flags)
         {
             physicalAddress &= ~0xFFF;

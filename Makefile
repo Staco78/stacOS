@@ -13,7 +13,7 @@ KERNEL_OBJS=$(KERNEL_ASM_SCRS:.asm=.o) $(KERNEL_CPP_SCRS:.cpp=.o) ${KERNEL_C_SCR
 
 QEMU_FLAGS=-cdrom myos.iso -smp 4 -cpu max,+pdpe1gb -m 32 -monitor stdio
 
-all: clean qemu
+all: qemu
 
 build: myos.iso
 

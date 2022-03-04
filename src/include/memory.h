@@ -55,6 +55,7 @@ namespace Memory
         };
 
         void init(uint64 cr3);
+        uint64 getCr3();
         constexpr inline uint64 getKernelVirtualAddress(uint64 physicalAddress)
         {
             return physicalAddress + 0xFFFF'8000'0000'0000;

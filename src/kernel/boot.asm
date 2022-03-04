@@ -104,7 +104,6 @@ GDT64:
 section .boot.text
 
 
-VIDEO_PTR equ 0xB8000
 %macro panic 2
 cli
 mov eax, %1

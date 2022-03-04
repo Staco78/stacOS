@@ -3,5 +3,5 @@ ata0-master: type=cdrom, path="myos.iso", status=inserted
 boot: cdrom
 mouse: enabled=0 
 magic_break: enabled=1
-cpu: reset_on_triple_fault=0
+cpu: reset_on_triple_fault=0, count=3
 cpuid: level=6, 1g_pages=1

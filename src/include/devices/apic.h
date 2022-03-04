@@ -26,6 +26,7 @@ namespace Devices
         bool isEnable();
         void init();
         void sendEOI();
+        void sendIPI(uint64 base, uint8 target, uint32 value);
     } // namespace LAPIC
 
 } // namespace Devices

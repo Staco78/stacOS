@@ -44,6 +44,11 @@ namespace Interrupts
             __asm__ volatile("lidt %0" ::"m"(idtp));
         }
 
+        void initAp()
+        {
+            __asm__ volatile("lidt %0" ::"m"(idtp));
+        }
+
         void setEntry(uint8 entry, uint64 isr)
         {
             idt[entry].baseLow = isr & 0xFFFF;

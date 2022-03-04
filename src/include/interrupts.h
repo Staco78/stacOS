@@ -9,6 +9,7 @@ namespace Interrupts
     namespace IDT
     {
         void init();
+        void initAp();
         void setEntry(uint8 entry, uint64 isr);
     } // namespace IDT
 

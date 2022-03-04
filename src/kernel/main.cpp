@@ -4,6 +4,9 @@
 #include <interrupts.h>
 #include <memory.h>
 #include <acpi.h>
+#include <scheduler.h>
+#include <gdt.h>
+
 
 extern "C" void kernelMain(void *multiboot_struct, uint64 cr3)
 {
@@ -15,5 +18,8 @@ extern "C" void kernelMain(void *multiboot_struct, uint64 cr3)
     Memory::init(multiboot_struct, cr3);
 
     ACPI::init();
+    Gdt::install();
     Interrupts::init();
+
+    Scheduler::startSMP();
 }

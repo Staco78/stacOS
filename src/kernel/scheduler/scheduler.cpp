@@ -2,7 +2,7 @@
 
 namespace Scheduler
 {
-    static List<CPU> processors;
+    List<CPU> processors;
 
     void registerCPU(bool bsp, uint64 lApicAddress, uint8 ID, uint8 lApicID)
     {
@@ -17,5 +17,10 @@ namespace Scheduler
     CPU *getCurrentCPU()
     {
         return processors[0];
+    }
+
+    List<CPU> &getAllCPUs()
+    {
+        return processors;
     }
 } // namespace Scheduler

@@ -13,6 +13,9 @@ namespace Devices
 
         constexpr uint REG_ISR = 0x100;
 
+        constexpr uint REG_ICR = 0x300;
+        constexpr uint REG_ICR_TARGET = 0x310;
+
         constexpr uint REG_LVT_TIMER = 0x320;
         constexpr uint REG_LVT_LINT0 = 0x350;
         constexpr uint REG_LVT_LINT1 = 0x360;
@@ -31,6 +34,20 @@ namespace Devices
         uint32 readLAPIC(uint64 base, uint reg)
         {
             return *((volatile uint32 *)(base + reg));
+        }
+
+        // target is a lApic ID
+        void sendIPI(uint64 base, uint8 target, uint32 value)
+        {
+            writeLAPIC(base, REG_ICR_TARGET, target << 24);
+            writeLAPIC(base, REG_ICR, value);
+            do
+            {
+                asm volatile("pause"
+                             :
+                             :
+                             : "memory");
+            } while (readLAPIC(base, REG_ICR) & (1 << 12));
         }
 
         bool isEnable()

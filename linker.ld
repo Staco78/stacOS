@@ -1,6 +1,12 @@
 ENTRY(_start)
 SECTIONS 
 {
+    . = 0x1000;
+
+    .apBoot : {
+        *(.apBoot)
+    }
+
     KERNEL_VMA = 0xFFFFFFFF80000000;
     . = 1M;
     

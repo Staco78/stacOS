@@ -127,21 +127,21 @@ namespace Interrupts
         {
             Devices::PIC::init(); // remap IRQ and disable it
 
-            IDT::setEntry(0, (uint64)_0);
-            IDT::setEntry(1, (uint64)_1);
-            IDT::setEntry(2, (uint64)_2);
-            IDT::setEntry(3, (uint64)_3);
-            IDT::setEntry(4, (uint64)_4);
-            IDT::setEntry(5, (uint64)_5);
-            IDT::setEntry(6, (uint64)_6);
-            IDT::setEntry(7, (uint64)_7);
-            IDT::setEntry(8, (uint64)_8);
-            IDT::setEntry(9, (uint64)_9);
-            IDT::setEntry(10, (uint64)_10);
-            IDT::setEntry(11, (uint64)_11);
-            IDT::setEntry(12, (uint64)_12);
-            IDT::setEntry(13, (uint64)_13);
-            IDT::setEntry(14, (uint64)_14);
+            IDT::setEntry(0, (uint64)_0, 1);
+            IDT::setEntry(1, (uint64)_1, 1);
+            IDT::setEntry(2, (uint64)_2, 1);
+            IDT::setEntry(3, (uint64)_3, 1);
+            IDT::setEntry(4, (uint64)_4, 1);
+            IDT::setEntry(5, (uint64)_5, 1);
+            IDT::setEntry(6, (uint64)_6, 1);
+            IDT::setEntry(7, (uint64)_7, 1);
+            IDT::setEntry(8, (uint64)_8, 1);
+            IDT::setEntry(9, (uint64)_9, 1);
+            IDT::setEntry(10, (uint64)_10, 1);
+            IDT::setEntry(11, (uint64)_11, 1);
+            IDT::setEntry(12, (uint64)_12, 1);
+            IDT::setEntry(13, (uint64)_13, 1);
+            IDT::setEntry(14, (uint64)_14, 1);
         }
     } // namespace Exceptions
 

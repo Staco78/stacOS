@@ -1,5 +1,5 @@
 #include <scheduler.h>
-#include <lib/list.h>
+#include <lib/vector.h>
 #include <devices/apic.h>
 #include <devices/pit.h>
 #include <interrupts.h>
@@ -17,25 +17,25 @@ namespace Scheduler
     volatile bool started = false;
     volatile uint8 apCoreIndex;
 
+    extern "C" void timer();
+
     extern "C" void apEntry()
     {
-        Gdt::install();
+        Scheduler::initCPU(Scheduler::getAllCPUs()[apCoreIndex]);
+        gdt::install();
         Interrupts::IDT::initAp();
         Devices::LAPIC::init();
         Interrupts::enable();
 
-        Terminal::kprintf("core %i up\n", apCoreIndex);
         started = true;
 
-        while (1)
-        {
-            __asm__ volatile("hlt");
-        }
+        Scheduler::init();
+        Scheduler::start();
     }
 
     void startSMP()
     {
-        List<CPU> &cores = Scheduler::getAllCPUs();
+        Vector<CPU *> cores = Scheduler::getAllCPUs();
         if (cores.size() <= 1)
             return;
 
@@ -49,7 +49,7 @@ namespace Scheduler
 
         Memory::Virtual::mapPage((uint64)&apBootStart, (uint64)&apBootStart, Memory::Virtual::WRITE);
 
-        apCr3 = Memory::Virtual::getCr3();
+        apCr3 = getCurrentProcess()->cr3;
 
         for (uint i = 0; i < cores.size(); i++)
         {

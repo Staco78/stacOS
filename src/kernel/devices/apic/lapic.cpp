@@ -2,6 +2,7 @@
 #include <scheduler.h>
 #include <cpuid.h>
 #include <types.h>
+#include <devices/pit.h>
 
 namespace Devices
 {
@@ -25,6 +26,9 @@ namespace Devices
         constexpr uint REG_TIMER_DIVISOR = 0x3E0;
 
         constexpr uint8_t TIMER_VECTOR = 0xFE;
+
+        uint64 timerFrequency = 0;
+        uint64 tickFems = 0;
 
         void writeLAPIC(uint64 base, uint reg, uint32 value)
         {
@@ -82,6 +86,37 @@ namespace Devices
         void sendEOI()
         {
             writeLAPIC(Scheduler::getCurrentCPU()->lApicAddress, REG_EOI, 0);
+        }
+
+        void calibrateTimer()
+        {
+            uint64 base = Scheduler::getCurrentCPU()->lApicAddress;
+            writeLAPIC(base, REG_TIMER_DIVISOR, 0b1011); // divise by 1
+            writeLAPIC(base, REG_TIMER_INITIAL, 0xFFFFFFFF);
+            PIT::delay(10);
+            uint64 readValue = readLAPIC(base, REG_TIMER_CURRENT);
+            uint64 elapsed = 0xFFFFFFFF - readValue;
+            timerFrequency = elapsed * 100;
+            tickFems = 1'000'000'000'000'000UL / timerFrequency;
+        }
+
+        void initTimer(uint8 vector, TimerMode mode, uint64 ns)
+        {
+            assert(tickFems);
+            uint64 base = Scheduler::getCurrentCPU()->lApicAddress;
+            writeLAPIC(base, REG_LVT_TIMER, vector | (((uint8)mode & 3) << 17));
+
+            uint64 value = (ns * 1'000'000) / tickFems;
+            if (value <= 0xFFFFFFFF)
+            {
+                writeLAPIC(base, REG_TIMER_DIVISOR, 0b1011);
+            }
+            else
+            {
+                value /= 4;
+                writeLAPIC(base, REG_TIMER_DIVISOR, 1);
+            }
+            writeLAPIC(base, REG_TIMER_INITIAL, value);
         }
     } // namespace LAPIC
 

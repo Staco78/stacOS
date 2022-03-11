@@ -1,10 +1,10 @@
 #include <terminal.h>
-#include <stdarg.h>
 #include <types.h>
 #include <multibootInformations.h>
 #include <lib/mem.h>
 #include <memory.h>
 #include <debug.h>
+#include <synchronization/spinlock.h>
 
 namespace Terminal
 {
@@ -28,83 +28,115 @@ namespace Terminal
         style = 0x07;
     }
 
+    void drawChar(const char c, uint x, uint y)
+    {
+        assert(x < width);
+        assert(y < height);
+        *((unsigned short *)video_address + y * width + x) = c | style << 8;
+    }
+
     void printChar(const char c)
     {
-        if (y >= height)
-        {
-            y = height - 1;
-            memcpy((void *)video_address, (void *)(video_address + width * 2), (height - 1) * width * 2);
-            memset((void *)(video_address + (height - 1) * width * 2), 0, width * 2);
-        }
+        static Spinlock lock;
+        lock.lock();
         if (c == '\n')
         {
             x = 0;
             y++;
+            lock.unlock();
             return;
         }
-        *((unsigned short *)video_address + y * width + x) = c | style << 8;
+        if (y >= height)
+        {
+            y = height - 1;
+            memmove((void *)video_address, (void *)(video_address + width * 2), (height - 1) * width * 2);
+            memset((void *)(video_address + (height - 1) * width * 2), 0, width * 2);
+        }
+        drawChar(c, x, y);
         if (++x >= width)
         {
             x = 0;
             y++;
+            if (y >= height)
+            {
+                y = height - 1;
+                memmove((void *)video_address, (void *)(video_address + width * 2), (height - 1) * width * 2);
+                memset((void *)(video_address + (height - 1) * width * 2), 0, width * 2);
+            }
         }
+        lock.unlock();
     }
 
-    void printInt(uint32 value)
+    void printInt(String &str, uint32 value)
     {
         if (value < 10)
         {
-            printChar(48 + value);
+            str.push(48 + value);
             return;
         }
-        printInt(value / 10);
-        printChar(48 + (value % 10));
+        printInt(str, value / 10);
+        str.push(48 + (value % 10));
     }
 
-    void printLong(uint64 value)
+    void printLong(String &str, uint64 value)
     {
         if (value < 10)
         {
-            printChar(48 + value);
+            str.push(48 + value);
             return;
         }
-        printLong(value / 10);
-        printChar(48 + (value % 10));
+        printLong(str, value / 10);
+        str.push(48 + (value % 10));
     }
 
-    void printHex(uint64 value)
+    void printHex(String &str, uint64 value)
     {
         if (value < 16)
         {
             if (value < 10)
-                printChar(48 + value);
+                str.push(48 + value);
             else
-                printChar(55 + value);
+                str.push(55 + value);
             return;
         }
-        printHex(value / 16);
+        printHex(str, value / 16);
         if (value % 16 < 10)
-            printChar(48 + (value % 16));
+            str.push(48 + (value % 16));
         else
-            printChar(55 + (value % 16));
+            str.push(55 + (value % 16));
     }
 
-    void printStr(const char *str)
+    void printStr(String &str, const char *ptr)
     {
-        while (*str)
-            printChar(*str++);
+        while (*ptr)
+            str.push(*ptr++);
     }
 
-    void kprintf(const char *format, ...)
-    {
-        va_list va;
-        va_start(va, format);
+    Spinlock strLock;
 
+    void printStr(const char *str, uint length)
+    {
+        strLock.lock();
+        for (uint i = 0; i < length; i++)
+            printChar(str[i]);
+        strLock.unlock();
+    }
+
+    void printStr(const String &str)
+    {
+        strLock.lock();
+        for (uint i = 0; i < str.size(); i++)
+            printChar(str[i]);
+        strLock.unlock();
+    }
+
+    void _sprintf(String &str, const char *format, va_list &va)
+    {
         while (*format)
         {
             if (*format != '%')
             {
-                printChar(*format++);
+                str.push(*format++);
                 continue;
             }
             format++;
@@ -112,21 +144,21 @@ namespace Terminal
             switch (*format)
             {
             case 'i':
-                printInt((uint32)va_arg(va, uint32));
+                printInt(str, (uint32)va_arg(va, uint32));
                 break;
 
             case 'l':
-                printLong((uint64)va_arg(va, uint64));
+                printLong(str, (uint64)va_arg(va, uint64));
                 break;
 
             case 'x':
-                printChar('0');
-                printChar('x');
-                printHex((uint64)va_arg(va, uint64));
+                str.push('0');
+                str.push('x');
+                printHex(str, (uint64)va_arg(va, uint64));
                 break;
 
             case 's':
-                printStr((const char *)va_arg(va, const char *));
+                printStr(str, (const char *)va_arg(va, const char *));
                 break;
 
             default:
@@ -135,13 +167,24 @@ namespace Terminal
 
             format++;
         }
+    }
 
+    void kprintf(const char *format, ...)
+    {
+        va_list va;
+        va_start(va, format);
+        String str;
+        _sprintf(str, format, va);
+        printStr(str);
         va_end(va);
     }
 
-    void printStr(const char *str, uint length)
+    void sprintf(String &str, const char *format, ...)
     {
-        for (uint i = 0; i < length; i++)
-            printChar(str[i]);
+        va_list va;
+        va_start(va, format);
+        _sprintf(str, format, va);
+        va_end(va);
     }
+
 } // namespace Terminal

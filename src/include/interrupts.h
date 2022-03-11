@@ -3,14 +3,21 @@
 #include <terminal.h>
 #include <devices/apic.h>
 #include <devices/pic.h>
+#include <cpu.h>
 
 namespace Interrupts
 {
+
+    struct InterruptState : Registers
+    {
+        uint64 rip, cs, rflags, rsp, ss;
+    };
+
     namespace IDT
     {
         void init();
         void initAp();
-        void setEntry(uint8 entry, uint64 isr);
+        void setEntry(uint8 entry, uint64 isr, uint8 ist = 0);
     } // namespace IDT
 
     namespace Exceptions

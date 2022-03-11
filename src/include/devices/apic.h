@@ -23,10 +23,19 @@ namespace Devices
 
     namespace LAPIC
     {
+        enum TimerMode
+        {
+            ONE_SHOT = 0,
+            PERIODIC = 1,
+            TSC_DEADLINE = 2
+        };
+
         bool isEnable();
         void init();
         void sendEOI();
         void sendIPI(uint64 base, uint8 target, uint32 value);
+        void calibrateTimer();
+        void initTimer(uint8 vector, TimerMode mode, uint64 ns);
     } // namespace LAPIC
 
 } // namespace Devices

@@ -63,9 +63,9 @@ namespace Devices
         {
             for (uint i = 0; i < IOApics.size(); i++)
             {
-                IOAPIC *ioa = IOApics[i];
-                if (irq >= ioa->GSIBase && irq < ioa->GSIBase + ioa->maxIRQ)
-                    return ioa;
+                IOAPIC &ioa = IOApics[i];
+                if (irq >= ioa.GSIBase && irq < ioa.GSIBase + ioa.maxIRQ)
+                    return &ioa;
             }
 
             return nullptr;

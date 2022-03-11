@@ -1,6 +1,7 @@
 #include <interrupts.h>
 #include <lib/mem.h>
 #include <terminal.h>
+#include <debug.h>
 
 namespace Interrupts
 {
@@ -49,8 +50,9 @@ namespace Interrupts
             __asm__ volatile("lidt %0" ::"m"(idtp));
         }
 
-        void setEntry(uint8 entry, uint64 isr)
+        void setEntry(uint8 entry, uint64 isr, uint8 ist)
         {
+            assert(ist <= 7);
             idt[entry].baseLow = isr & 0xFFFF;
             idt[entry].baseMid = (isr >> 16) & 0xFFFF;
             idt[entry].basHigh = (isr >> 32) & 0xFFFFFFFF;
@@ -59,6 +61,7 @@ namespace Interrupts
 
             idt[entry].flags.gateType = 0xE;
             idt[entry].flags.present = 1;
+            idt[entry].IST = ist;
         }
     } // namespace IDT
 

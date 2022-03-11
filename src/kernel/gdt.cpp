@@ -1,7 +1,8 @@
 #include <gdt.h>
 #include <scheduler.h>
+#include <lib/mem.h>
 
-namespace Gdt
+namespace gdt
 {
 
     constexpr uint8 PRESENT = 1 << 7;
@@ -16,7 +17,9 @@ namespace Gdt
 
     void install()
     {
-        SegmentDescriptor *gdt = (SegmentDescriptor *)kcalloc(3, sizeof(SegmentDescriptor));
+        SegmentDescriptor *gdt = (SegmentDescriptor *)kmalloc(3 * sizeof(SegmentDescriptor) + sizeof(LongSegmentDescriptor));
+        memset(gdt, 0, 3 * sizeof(SegmentDescriptor) + sizeof(LongSegmentDescriptor));
+
         gdt[1].limitLow = 0xFFFF;
         gdt[1].accessByte = PRESENT | NOT_SYS | EXEC | DC | RW;
         gdt[1].flags = GRAN | LONG;
@@ -29,9 +32,23 @@ namespace Gdt
 
         Scheduler::CPU *cpu = Scheduler::getCurrentCPU();
 
+        LongSegmentDescriptor *tss = (LongSegmentDescriptor *)&gdt[3];
+        tss->limitLow = sizeof(TSS);
+        uint64 TSSAddress = (uint64)&cpu->TSS;
+        tss->baseLow = (uint16)TSSAddress;
+        tss->baseMid = (uint8)(TSSAddress >> 16);
+        tss->baseHigh = (uint8)(TSSAddress >> 24);
+        tss->baseVeryHigh = (uint32)(TSSAddress >> 32);
+        tss->accessByte = 0x89; // TSS
+        tss->flags = LONG;
+
         cpu->gdt.base = (uint64)gdt;
-        cpu->gdt.limit = sizeof(SegmentDescriptor) * 3 - 1;
+        cpu->gdt.limit = 3 * sizeof(SegmentDescriptor) + sizeof(LongSegmentDescriptor) - 1;
         __asm__ volatile("lgdt (%%rax)" ::"a"(&cpu->gdt));
+        __asm__ volatile("mov $(3 * 8), %ax\n"
+                         "ltr %ax");
+
+        cpu->TSS.IST1 = (uint64)kmalloc(4096);
     }
 
 } // namespace Gdt

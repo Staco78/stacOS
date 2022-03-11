@@ -49,7 +49,7 @@ public:
         length++;
     }
 
-    T *get(unsigned int index)
+    T &get(unsigned int index)
     {
         if (index < 0 || index >= length)
         {
@@ -61,7 +61,7 @@ public:
         {
             current = current->next;
         }
-        return &current->data;
+        return current->data;
     }
 
     void insert(unsigned int index, T data)
@@ -136,7 +136,7 @@ public:
         length = 0;
     }
 
-    inline T *operator[](unsigned int index)
+    inline T &operator[](unsigned int index)
     {
         return get(index);
     }

@@ -17,6 +17,8 @@ namespace Memory
 
         extern "C" uint64 physical_pml2; // from boot.asm
 
+        Spinlock lock;
+
         bool get(uint64 index);
 
         void init(MultibootInformations::MultibootInfo *multibootStruct)

@@ -193,6 +193,12 @@ jmp GDT64.Code:entry64bits
 
 [BITS 64]
 entry64bits:
+    mov ax, 0x10
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
     mov rsp, stack_top
     mov rbp, rsp
     jmp entryUpper
@@ -248,6 +254,13 @@ mapping_end:
     mov rdi, [multiboot_struct]
     add rdi, KERNEL_VIRTUAL_ADDR
     mov qword [kernel_pml4], 0
+
+    mov rax, 0
+    loop_invlpg:
+    invlpg [rax]
+    add rax, 0x200000
+    cmp rax, 0x40000000
+    jl loop_invlpg
 
     mov rsi, kernel_pml4
 

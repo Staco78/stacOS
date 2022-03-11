@@ -3,6 +3,7 @@
 #include <types.h>
 #include <liballoc.h>
 #include <multibootInformations.h>
+#include <synchronization/spinlock.h>
 
 #define KERNEL_VMA 0xFFFFFFFF80000000
 #define PHYSICAL_MEMORY_ADDR 0xFFFF'8000'0000'0000
@@ -11,6 +12,7 @@ namespace Memory
 {
     namespace Physical
     {
+        extern Spinlock lock;
         void init(MultibootInformations::MultibootInfo *multibootStruct);
         void setUsed(uint64 index, uint64 length = 1);
         void setFree(uint64 index, uint64 length = 1);
@@ -21,7 +23,7 @@ namespace Memory
 
     namespace Virtual
     {
-
+        extern Spinlock lock;
         union PML
         {
             struct
@@ -54,14 +56,18 @@ namespace Memory
             NX = 0x8000000000000000
         };
 
-        void init(uint64 cr3);
-        uint64 getCr3();
         constexpr inline uint64 getKernelVirtualAddress(uint64 physicalAddress)
         {
             return physicalAddress + 0xFFFF'8000'0000'0000;
         }
+        constexpr inline uint64 makeCanonical(uint64 address)
+        {
+            return address & 1UL << 47 ? address | 0xFFFF000000000000 : address & 0xFFFFFFFFFFFF;
+        }
         void mapPage(uint64 physicalAddress, uint64 virtualAddress, uint64 flags);
         void unmapPage(uint64 virtualAddress);
+        uint64 findFreePages(uint64 size = 1, bool user = false);
+
     } // namespace Virtual
 
     namespace Heap
@@ -69,10 +75,23 @@ namespace Memory
         void init();
     } // namespace Heap
 
-    inline void init(void *multibootStruct, uint64 cr3)
+    inline void init(void *multibootStruct)
     {
         Physical::init((MultibootInformations::MultibootInfo *)multibootStruct);
-        Virtual::init(cr3);
         Heap::init();
+    }
+
+    inline uint64 getFreePages(uint64 size = 1, uint64 flags = Virtual::WRITE)
+    {
+        Virtual::lock.lock();
+        uint64 virtualAddress = Virtual::findFreePages(size, flags & Virtual::USER);
+        for (uint64 i = 0; i < size * 4096; i += 4096)
+        {
+            Physical::lock.lock();
+            Virtual::mapPage(Physical::getFreePages(1), virtualAddress + i, flags);
+            Physical::lock.unlock();
+        }
+        Virtual::lock.unlock();
+        return virtualAddress;
     }
 } // namespace Memory

@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <lib/mem.h>
 #include <terminal.h>
+#include <synchronization/spinlock.h>
 
 namespace Memory
 {
@@ -15,6 +16,8 @@ namespace Memory
         uint64 *physicalPages; // array of address of physical pages mapped
         static constexpr uint64 physicalPagesSize = 1024 * 512;
 
+        Spinlock lock;
+
         void init()
         {
             physicalPages = (uint64 *)Virtual::getKernelVirtualAddress(Physical::getFreePages(physicalPagesSize / 512));
@@ -24,21 +27,20 @@ namespace Memory
 
 } // namespace Memory
 
+using namespace Memory;
+using namespace Memory::Heap;
+
 extern "C" int liballoc_lock()
 {
-    Interrupts::disable();
+    lock.lock();
     return 0;
 }
 
 extern "C" int liballoc_unlock()
 {
-    Interrupts::enable();
+    lock.unlock();
     return 0;
 }
-
-using namespace Memory;
-using namespace Memory::Virtual;
-using namespace Memory::Heap;
 
 extern "C" void *liballoc_alloc(size_t size)
 {
@@ -53,7 +55,7 @@ extern "C" void *liballoc_alloc(size_t size)
                 for (; y < size; y++)
                 {
                     physicalPages[i - y] = Physical::getFreePages();
-                    mapPage(physicalPages[i - y], heapAddress + (i - y) * 4096, 2);
+                    Virtual::mapPage(physicalPages[i - y], heapAddress + (i - y) * 4096, 2);
                 }
                 return (void *)(heapAddress + (i - --y) * 4096);
             }
@@ -70,7 +72,7 @@ extern "C" int liballoc_free(void *ptr, size_t size)
     for (size_t i = baseIndex; i < size + baseIndex; i++)
     {
         Physical::freePages(physicalPages[i]);
-        unmapPage(heapAddress + i * 4096);
+        Virtual::unmapPage(heapAddress + i * 4096);
         physicalPages[i] = 0;
     }
     return 0;

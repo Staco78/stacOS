@@ -13,12 +13,12 @@ namespace Devices
             outb(0x40, value);
             outb(0x40, value >> 8);
 
-            int i = 30;
-            while (i--)
+            while (true)
             {
                 outb(0x43, 0xE2);
                 if (inb(0x40) & 128)
                     return;
+                __asm__ volatile("pause");
             }
         }
     } // namespace PIT

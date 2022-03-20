@@ -2,7 +2,7 @@ GCC=x86_64-elf-gcc
 LD=x86_64-elf-ld
 
 C_FLAGS=-ffreestanding -Wall -mcmodel=kernel -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -Isrc/include -lgcc -g
-GCC_FLAGS=$(C_FLAGS) -fpermissive
+GCC_FLAGS=$(C_FLAGS) -fpermissive -fno-exceptions -fno-rtti
 LD_FLAGS=-z max-page-size=0x1000 -nostdlib -g
 
 KERNEL_C_SCRS=$(shell find ./src/ -name *.c)
@@ -44,10 +44,15 @@ dir:
 %.o: %.asm
 	nasm -felf64 $< -o $@
 
+initrd.tar:
+	$(shell cd initrd && tar -cf ../initrd.tar * -H posix && cd ..)
+	
+
 myos.bin: $(KERNEL_OBJS)
 	$(LD) -T linker.ld $^ -o $@ $(LD_FLAGS)
 
-myos.iso: myos.bin dir
+myos.iso: myos.bin initrd.tar dir
 	cp myos.bin iso/boot/
+	cp initrd.tar iso/boot/initrd.bin
 	cp grub.cfg iso/boot/grub/
 	grub-mkrescue -o $@ iso

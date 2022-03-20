@@ -1,7 +1,6 @@
 #include <memory.h>
 #include <terminal.h>
 #include <lib/mem.h>
-#include <panic.h>
 #include <debug.h>
 
 using namespace MultibootInformations;
@@ -70,6 +69,9 @@ namespace Memory
                 for (uint i = 0; i < 512; i++)
                     setFree(((uint64)&physical_pml2) / 4096 + i);
             }
+
+            Module *module = (Module *)findModule("initrd");
+            setUsed(module->start / 4096, (module->end - module->start) / 4096);
         }
 
         // index and length in pages

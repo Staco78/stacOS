@@ -47,7 +47,7 @@ jmp _
 
 
 global _schedulerTickHandler
-_schedulerTickHandler
+_schedulerTickHandler:
 push_all_regs
 extern schedulerTickHandler
 call schedulerTickHandler

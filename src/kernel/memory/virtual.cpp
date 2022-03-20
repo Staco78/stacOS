@@ -1,6 +1,5 @@
 #include <memory.h>
 #include <terminal.h>
-#include <panic.h>
 #include <lib/mem.h>
 #include <debug.h>
 #include <scheduler.h>

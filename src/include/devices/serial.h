@@ -7,5 +7,5 @@ namespace Serial
     void init();
     void print(const char c);
     void print(const char *str);
-    void print(String &str);
+    void print(const String &str);
 } // namespace Serial

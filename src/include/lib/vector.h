@@ -1,16 +1,18 @@
 #pragma once
 #include <types.h>
 #include <memory.h>
+#include <operators.h>
+#include <lib/mem.h>
 
 template <typename T>
 class Vector
 {
-private:
+protected:
     static constexpr uint64 defaultDataSize = 10;
 
-    T *_data = nullptr;
-    uint64 _size = 0;
-    uint64 dataSize = 0;
+    mutable T *_data = nullptr;
+    mutable uint64 _size = 0;
+    mutable uint64 dataSize = 0;
 
 public:
     Vector()
@@ -23,12 +25,26 @@ public:
         realloc(dataSize);
     }
 
+    Vector(const Vector<T> &other)
+    {
+        realloc(other.dataSize);
+        memcpy(begin(), other.begin(), other.size() * sizeof(T));
+        _size = other._size;
+    }
+
+    inline void operator=(const Vector<T> &other)
+    {
+        realloc(other.size());
+        _size = other.size();
+        memcpy(begin(), other.begin(), other.size() * sizeof(T));
+    }
+
     ~Vector()
     {
         kfree(_data);
     }
 
-    void realloc(uint64 newSize)
+    void realloc(uint64 newSize) const
     {
         dataSize = newSize;
         if (_data == nullptr)
@@ -37,14 +53,15 @@ public:
             _data = (T *)krealloc(_data, newSize * sizeof(T));
     }
 
-    void push(T data)
+    void push(const T &data)
     {
         if (_size == dataSize)
         {
             realloc(dataSize ? dataSize * 2 : 1);
         }
 
-        _data[_size++] = data;
+        T &ref = _data[_size++];
+        new (&ref) T(data);
     }
 
     inline T &operator[](uint64 index)
@@ -68,6 +85,11 @@ public:
     }
 
     inline T *begin()
+    {
+        return _data;
+    }
+
+    inline const T *begin() const
     {
         return _data;
     }

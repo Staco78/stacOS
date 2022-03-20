@@ -7,7 +7,7 @@
 #include <scheduler.h>
 #include <gdt.h>
 #include <devices/serial.h>
-#include <log.h>
+#include <fs/fs.h>
 
 extern "C" void kernelMain(void *multiboot_struct, uint64 cr3)
 {
@@ -25,6 +25,8 @@ extern "C" void kernelMain(void *multiboot_struct, uint64 cr3)
     Interrupts::init();
 
     Devices::LAPIC::calibrateTimer();
+
+    fs::Initrd::init();
 
     Scheduler::init();
     Scheduler::startSMP();

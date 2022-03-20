@@ -1,6 +1,6 @@
 #include <operators.h>
 #include <memory.h>
-#include <panic.h>
+#include <debug.h>
 
 [[nodiscard]] void *operator new(size_t count) { return kmalloc(count); }
 [[nodiscard]] void *operator new[](size_t count) { return (void *)kmalloc(count); }

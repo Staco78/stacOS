@@ -45,7 +45,7 @@ namespace MultibootInformations
     {
         uint32 type;
         uint32 size;
-    };
+    } __attribute__((packed));
 
     struct MultibootInfo
     {
@@ -53,6 +53,13 @@ namespace MultibootInformations
         uint32 reserved;
         MultibootTag tags[0];
     };
+
+    struct Module : MultibootTag
+    {
+        uint32 start;
+        uint32 end;
+        char name[0];
+    } __attribute__((packed));
 
     enum TagType : uint32
     {
@@ -82,4 +89,5 @@ namespace MultibootInformations
 
     void setStruct(void *multibootStruct);
     void *getEntry(uint32 type);
+    Module* findModule(const char* name);
 } // namespace MultibootInformations

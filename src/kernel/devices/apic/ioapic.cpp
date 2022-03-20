@@ -1,14 +1,14 @@
 #include <devices/apic.h>
 #include <memory.h>
 #include <lib/list.h>
-#include <lib/tree.h>
+#include <lib/binaryTree.h>
 
 namespace Devices
 {
     namespace IOAPIC
     {
         static List<IOAPIC> IOApics;
-        static Tree<uint8, uint8> IRQMap;
+        static BinaryTree<uint8, uint8> IRQMap;
 
         void writeIOAPIC(IOAPIC *ioapic, uint32 reg, uint32 value)
         {

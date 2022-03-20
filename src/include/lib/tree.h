@@ -1,71 +1,64 @@
 #pragma once
+#include <lib/list.h>
 #include <memory.h>
+#include <debug.h>
 
-template <typename K, typename V>
+template <typename T>
 class Tree
 {
-private:
+public:
     struct Node
     {
-        Node(K k, V v) : key(k), value(v), left(nullptr), right(nullptr) {}
-        K key;
-        V value;
-        Node *left;
-        Node *right;
+        T data;
+        Node *parent;
+        List<Node *> children;
     };
 
+private:
     Node *root = nullptr;
 
 public:
-    void insert(K key, V value)
+    inline void setRoot(T data)
     {
-        if (root == nullptr)
-        {
-            root = new Node(key, value);
-            return;
-        }
-        Node *current = root;
-        while (true)
-        {
-            if (key == current->key)
-            {
-                Terminal::kprintf("Warn: tree insert: element with same key already exist\n");
-                current->value = value;
-                return;
-            }
-
-            Node *parent = current;
-            bool goLeft = key < current->key;
-            current = goLeft ? current->left : current->right;
-
-            if (current == nullptr)
-            {
-                Node *newNode = new Node(key, value);
-                if (goLeft)
-                    parent->left = newNode;
-                else
-                    parent->right = newNode;
-                return;
-            }
-        }
+        root = (Node *)kmalloc(sizeof(Node));
+        root->data = data;
+        root->parent = nullptr;
     }
 
-    V *find(K key)
+    inline Node *getRoot()
     {
-        Node *current = root;
-        while (current != nullptr)
-        {
-            if (key == current->key)
-            {
-                return &current->value;
-            }
+        return root;
+    }
 
-            if (key < current->key)
-                current = current->left;
-            else
-                current = current->right;
+    Node *addChild(Node *parent, T data)
+    {
+        assert(parent);
+        Node *node = (Node *)kmalloc(sizeof(Node));
+        node->data = data;
+        node->parent = parent;
+        parent->children.push(node);
+        return node;
+    }
+
+    void deleteNode(Node *node)
+    {
+        assert(node);
+        for (Node *child : node->children)
+        {
+            assert(child);
+            deleteNode(child);
         }
 
-        return nullptr;
+        uint i = 0;
+        for (auto it = node->children.begin(); it != node->children.end(); it++)
+        {
+            if (*it == node)
+            {
+                node->children.remove(i);
+                return;
+            }
+            i++;
+        }
+        panic("Tree: unable to delete node: not found");
     }
 };

@@ -34,8 +34,8 @@ namespace Serial
         lock.unlock();
     }
 
-    void print(String &str)
+    void print(const String &str)
     {
-        print(str.begin());
+        print(str.c_str());
     }
 } // namespace Serial

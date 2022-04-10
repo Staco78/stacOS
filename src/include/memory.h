@@ -67,7 +67,7 @@ namespace Memory
         void mapPage(uint64 physicalAddress, uint64 virtualAddress, uint64 flags);
         void unmapPage(uint64 virtualAddress);
         uint64 findFreePages(uint64 size = 1, bool user = false);
-
+        void *allocModuleSpace(uint64 size);
     } // namespace Virtual
 
     namespace Heap

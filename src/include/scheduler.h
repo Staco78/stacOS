@@ -5,6 +5,7 @@
 #include <lib/string.h>
 #include <gdt.h>
 #include <cpu.h>
+#include <fs/fs.h>
 
 namespace Scheduler
 {

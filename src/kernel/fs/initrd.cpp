@@ -36,21 +36,28 @@ namespace fs
         {
             TarFileHeader *m_header;
             void *m_start;
+            uint64 m_size;
 
         public:
-            File(TarFileHeader *driver)
+            File(TarFileHeader *header)
             {
-                m_header = driver;
+                m_header = header;
                 m_start = (void *)(((uint64)m_header | 0x1FF) + 1);
+                m_size = getsize(header->size);
             }
 
             int64 read(uint64 offset, uint64 size, void *buffer)
             {
-                uint64 sizeToRead = getsize(m_header->size);
+                uint64 sizeToRead = m_size;
                 if (size < sizeToRead)
                     sizeToRead = size;
                 memcpy(buffer, (void *)((uint64)m_start + offset), sizeToRead);
                 return sizeToRead;
+            }
+
+            uint64 getSize()
+            {
+                return m_size;
             }
         };
 

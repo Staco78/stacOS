@@ -98,4 +98,15 @@ public:
     {
         return _data + _size;
     }
+
+    template <class Function>
+    T *find(Function func)
+    {
+        for (uint i = 0; i < _size; i++)
+        {
+            if (func(_data[i]))
+                return &_data[i];
+        }
+        return nullptr;
+    }
 };

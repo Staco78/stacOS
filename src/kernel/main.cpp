@@ -8,6 +8,8 @@
 #include <gdt.h>
 #include <devices/serial.h>
 #include <fs/fs.h>
+#include <symbols.h>
+#include <modules.h>
 
 extern "C" void kernelMain(void *multiboot_struct, uint64 cr3)
 {
@@ -27,6 +29,10 @@ extern "C" void kernelMain(void *multiboot_struct, uint64 cr3)
     Devices::LAPIC::calibrateTimer();
 
     fs::Initrd::init();
+
+    KernelSymbols::install();
+    Modules::init();
+    Modules::loadModule((fs::FileNode *)fs::resolvePath("/initrd/testModule.ko"));
 
     Scheduler::init();
     Scheduler::startSMP();

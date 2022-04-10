@@ -13,11 +13,6 @@ namespace fs
         DIRECTORY = 2,
     };
 
-    struct NodeStat
-    {
-        uint64 size;
-    };
-
     class Node
     {
     public:
@@ -27,14 +22,13 @@ namespace fs
 
         virtual bool isFile();
         virtual bool isDirectory();
-
-        virtual void stat(NodeStat *buf);
     };
 
     class FileNode : public Node
     {
     public:
         virtual int64 read(uint64 offset, uint64 size, void *buffer);
+        virtual uint64 getSize();
         bool isFile();
     };
 

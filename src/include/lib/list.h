@@ -15,14 +15,14 @@ private:
 
     Node *head = nullptr;
     Node *last = nullptr;
-    unsigned int length = 0;
+    uint length = 0;
 
 public:
     struct iterator
     {
         iterator(Node *n) : node(n) {}
 
-        iterator &operator++()
+        iterator &operator++(int)
         {
             assert(this->node);
             this->node = this->node->next;
@@ -64,16 +64,17 @@ public:
         return length == 0;
     }
 
-    inline unsigned int size()
+    inline uint size()
     {
         return length;
     }
 
-    void push(T data)
+    void push(const T &data)
     {
         if (head == nullptr)
         {
             head = (Node *)kmalloc(sizeof(Node));
+            new (head) Node();
             head->data = data;
             head->next = nullptr;
             last = head;
@@ -82,6 +83,7 @@ public:
         {
             assert(last);
             last->next = (Node *)kmalloc(sizeof(Node));
+            new (last->next) Node();
             last->next->data = data;
             last->next->next = nullptr;
             last = last->next;
@@ -90,22 +92,22 @@ public:
         length++;
     }
 
-    T &get(unsigned int index)
+    T *get(uint index)
     {
-        if (index < 0 || index >= length)
-        {
-            panic("List: Index out of range");
-        }
+        if (index >= length)
+            return nullptr;
 
-        return last->data;
+        Node *current = head;
+        for (uint i = 0; i < index; i++)
+        {
+            current = current->next;
+        }
+        return &current->data;
     }
 
-    void insert(unsigned int index, T data)
+    void insert(uint index, T data)
     {
-        if (index < 0 || index > length)
-        {
-            panic("List: Index out of range");
-        }
+        assert(index <= length);
 
         if (index == 0)
         {
@@ -133,28 +135,30 @@ public:
         length++;
     }
 
-    void remove(unsigned int index)
+    void remove(uint index)
     {
-        if (index < 0 || index >= length)
-        {
-            panic("List: Index out of range");
-        }
+        assert(index < length);
 
         Node *temp;
         if (index == 0)
         {
             temp = head;
             head = head->next;
+            if (length == 1)
+                last = head;
         }
         else
         {
             Node *current = head;
-            for (unsigned int i = 0; i < index - 1; i++)
+            for (uint i = 0; i < index - 1; i++)
             {
                 current = current->next;
             }
             temp = current->next;
             current->next = current->next->next;
+
+            if (index + 1 == length)
+                last = current;
         }
         kfree(temp);
 
@@ -165,7 +169,7 @@ public:
     {
         Node *current = head;
         head = nullptr;
-        for (unsigned int i = 0; i < length; i++)
+        for (uint i = 0; i < length; i++)
         {
             Node *next = current->next;
             kfree(current);
@@ -175,7 +179,7 @@ public:
         length = 0;
     }
 
-    inline T &operator[](unsigned int index)
+    inline T *operator[](uint index)
     {
         return get(index);
     }

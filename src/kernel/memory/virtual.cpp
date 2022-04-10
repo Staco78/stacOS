@@ -171,7 +171,6 @@ namespace Memory
                             PML *TDEntry = &((PML *)getKernelVirtualAddress(UNSHIFT(pml2Entry->bits.address)))[TDIndex];
                             if (TDEntry->bits.present)
                                 found = 0;
-
                             else
                             {
                                 if (found == 0)
@@ -191,6 +190,33 @@ namespace Memory
             panic("Out of virtual memory");
         }
 
-        } // namespace Virtual
+        static constexpr uint64 moduleSpaceBaseAddress = 0xFFFF'FFFE'8000'0000;
+        static constexpr uint64 moduleSpaceSize = 0x8000'0000;
+
+        uint64 moduleBaseAddressCurrent = moduleSpaceBaseAddress;
+
+        void *allocModuleSpace(uint64 size)
+        {
+            if ((size & 0xFFF) != 0)
+            {
+                size |= 0xFFF;
+                size++;
+            }
+
+            if ((moduleBaseAddressCurrent + size) > (moduleSpaceBaseAddress + moduleSpaceSize))
+                return nullptr;
+
+            void *r = (void *)moduleBaseAddressCurrent;
+            for (uint i = 0; i < size / 4096; i++)
+            {
+                uint64 address = Physical::getFreePages();
+                Virtual::mapPage(address, moduleBaseAddressCurrent, WRITE);
+                moduleBaseAddressCurrent += 4096;
+            }
+
+            return r;
+        }
+
+    } // namespace Virtual
 
 } // namespace Memory

@@ -9,8 +9,9 @@ public:
     String() {}
     String(const char *str);
     String(const char *str, uint len);
+    String(const String &str);
 
-    const char* c_str() const;
+    const char *c_str() const;
 
     bool operator==(const String &other) const;
     bool operator==(const char *other) const;

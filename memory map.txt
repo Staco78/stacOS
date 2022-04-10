@@ -1,13 +1,17 @@
 Virtual memory:
 
-0xFFFF'8000'0000'0000:
+0xFFFF'8000'0000'0000-0xFFFF'807F'FFFF'FFFF:
 Physical memory linear mapping
 Size: 512GB
 
-0xFFFF'FFFF'0000'0000:
+0xFFFF'FFFE'8000'0000-0xFFFF'FFFE'FFFF'FFFF:
+Kernel modules
+Size: 2GB
+
+0xFFFF'FFFF'0000'0000-0xFFFF'FFFF'7FFF'FFFF:
 Kernel heap
 Size: 2GB
 
-0xFFFF'FFFF'8000'0000:
+0xFFFF'FFFF'8000'0000-0xFFFF'FFFF'FFFF'FFFF:
 Kernel code and data space
 Size: 2GB

@@ -18,6 +18,13 @@ String::String(const char *str, uint len)
     _size = len;
 }
 
+String::String(const String &str)
+{
+    realloc(str.size());
+    memcpy(begin(), str.begin(), str.size());
+    _size = str.size();
+}
+
 const char *String::c_str() const
 {
     if (dataSize <= _size)

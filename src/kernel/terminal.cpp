@@ -161,6 +161,10 @@ namespace Terminal
                 printStr(str, (const char *)va_arg(va, const char *));
                 break;
 
+            case 'S':
+                printStr(str, ((String*)va_arg(va, String*))->c_str());
+                break;
+
             default:
                 break;
             }

@@ -27,10 +27,12 @@ bochs: myos.iso
 	bochs 
 
 clean:
-	rm -rf	 iso 
-	find ./ -name *.o -delete
+	rm -rf iso 
+	find ./ -name "*.o" -delete
 	rm -f myos.bin
 	rm -f myos.iso
+	rm -f initrd.tar
+	rm -rf build
 
 dir:
 	mkdir -p iso/boot/grub
@@ -44,14 +46,22 @@ dir:
 %.o: %.asm
 	nasm -felf64 $< -o $@
 
-initrd.tar:
+modules:
+	for dir in $(wildcard ./src/modules/*/); do \
+        $(MAKE) -C $$dir; \
+    done
+
+symbols: myos.bin
+	$(shell bash -c "nm -g $< | ./scripts/createSymbols.sh")
+
+
+initrd.tar: modules symbols
 	$(shell cd initrd && tar -cf ../initrd.tar * -H posix && cd ..)
-	
 
 myos.bin: $(KERNEL_OBJS)
 	$(LD) -T linker.ld $^ -o $@ $(LD_FLAGS)
 
-myos.iso: myos.bin initrd.tar dir
+myos.iso: dir myos.bin initrd.tar
 	cp myos.bin iso/boot/
 	cp initrd.tar iso/boot/initrd.bin
 	cp grub.cfg iso/boot/grub/

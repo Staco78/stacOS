@@ -14,6 +14,10 @@ namespace fs
         Log::warn("Trying to read base fileNode");
         return -1;
     }
+    uint64 FileNode::getSize()
+    {
+        assert(false);
+    }
 
     bool DirectoryNode::isDirectory() { return true; }
     Node *DirectoryNode::findEntry(const String &name) { return nullptr; }

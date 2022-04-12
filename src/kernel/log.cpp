@@ -58,4 +58,9 @@ namespace Log
             va_end(va);
         }
     }
+
+    void raw(const char *str)
+    {
+        Serial::print(str);
+    }
 } // namespace Log

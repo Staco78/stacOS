@@ -36,12 +36,115 @@ namespace Interrupts
         static Entry idt[maxEntries];
         static IDTPointer idtp;
 
+        extern "C"
+        {
+            void isr_0();
+            void isr_1();
+            void isr_2();
+            void isr_3();
+            void isr_4();
+            void isr_5();
+            void isr_6();
+            void isr_7();
+            void isr_8();
+            void isr_9();
+            void isr_10();
+            void isr_11();
+            void isr_12();
+            void isr_13();
+            void isr_14();
+            void isr_15();
+            void isr_16();
+            void isr_17();
+            void isr_18();
+            void isr_19();
+            void isr_20();
+            void isr_21();
+            void isr_22();
+            void isr_23();
+            void isr_24();
+            void isr_25();
+            void isr_26();
+            void isr_27();
+            void isr_28();
+            void isr_29();
+            void isr_30();
+            void isr_31();
+            void irq_0();
+            void irq_1();
+            void irq_2();
+            void irq_3();
+            void irq_4();
+            void irq_5();
+            void irq_6();
+            void irq_7();
+            void irq_8();
+            void irq_9();
+            void irq_10();
+            void irq_11();
+            void irq_12();
+            void irq_13();
+            void irq_14();
+            void irq_15();
+        }
+
         void init()
         {
             idtp.base = (uint64)&idt;
             idtp.limit = (sizeof(Entry) * maxEntries) - 1;
 
             memset(idt, 0, sizeof(Entry) * maxEntries);
+
+            setEntry(0, isr_0);
+            setEntry(1, isr_1);
+            setEntry(2, isr_2);
+            setEntry(3, isr_3);
+            setEntry(4, isr_4);
+            setEntry(5, isr_5);
+            setEntry(6, isr_6);
+            setEntry(7, isr_7);
+            setEntry(8, isr_8);
+            setEntry(9, isr_9);
+            setEntry(10, isr_10);
+            setEntry(11, isr_11);
+            setEntry(12, isr_12);
+            setEntry(13, isr_13);
+            setEntry(14, isr_14);
+            setEntry(15, isr_15);
+            setEntry(16, isr_16);
+            setEntry(17, isr_17);
+            setEntry(18, isr_18);
+            setEntry(19, isr_19);
+            setEntry(20, isr_20);
+            setEntry(21, isr_21);
+            setEntry(22, isr_22);
+            setEntry(23, isr_23);
+            setEntry(24, isr_24);
+            setEntry(25, isr_25);
+            setEntry(26, isr_26);
+            setEntry(27, isr_27);
+            setEntry(28, isr_28);
+            setEntry(29, isr_29);
+            setEntry(30, isr_30);
+            setEntry(31, isr_31);
+
+            setEntry(32, irq_0);
+            setEntry(33, irq_1);
+            setEntry(34, irq_2);
+            setEntry(35, irq_3);
+            setEntry(36, irq_4);
+            setEntry(37, irq_5);
+            setEntry(38, irq_6);
+            setEntry(39, irq_7);
+            setEntry(40, irq_8);
+            setEntry(41, irq_9);
+            setEntry(42, irq_10);
+            setEntry(43, irq_11);
+            setEntry(44, irq_12);
+            setEntry(45, irq_13);
+            setEntry(46, irq_14);
+            setEntry(47, irq_15);
+
             __asm__ volatile("lidt %0" ::"m"(idtp));
         }
 
@@ -63,6 +166,7 @@ namespace Interrupts
             idt[entry].flags.present = 1;
             idt[entry].IST = ist;
         }
-    } // namespace IDT
+
+        } // namespace IDT
 
 } // namespace Interrupts

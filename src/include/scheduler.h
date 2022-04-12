@@ -73,5 +73,6 @@ namespace Scheduler
     void switchTo(Thread *thread);
 
     Thread *createThread(Process *process, uint64 entry, bool userThread = true);
+    void addThread(Thread *thread);
 
 } // namespace Scheduler

@@ -190,8 +190,12 @@ namespace Modules
             kfree(strTables[i].data);
         kfree(symbols);
 
+        if (module->init())
+            return false;
+
         map.set(String(module->name), {.data = module, .address = (uint64)loadAddress, .size = size});
-        module->init();
+
+        Log::info("Module %s loaded", module->name);
 
         return true;
     }

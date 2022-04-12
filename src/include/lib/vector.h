@@ -41,7 +41,8 @@ public:
 
     ~Vector()
     {
-        kfree(_data);
+        if (_data)
+            kfree(_data);
     }
 
     void realloc(uint64 newSize) const

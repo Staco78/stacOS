@@ -43,4 +43,13 @@ namespace Scheduler
 
         return thread;
     }
+
+    void addThread(Thread *thread)
+    {
+        thread->process->threads.push(thread);
+        CPU *cpu = getCurrentCPU();
+        cpu->threads.lock();
+        cpu->threads.push(thread);
+        cpu->threads.unlock();
+    }
 } // namespace Scheduler

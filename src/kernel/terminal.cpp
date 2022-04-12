@@ -6,6 +6,8 @@
 #include <debug.h>
 #include <synchronization/spinlock.h>
 
+#include <log.h>
+
 namespace Terminal
 {
     static uint32 x = 0;
@@ -35,15 +37,34 @@ namespace Terminal
         *((unsigned short *)video_address + y * width + x) = c | style << 8;
     }
 
+    char getChar(uint x, uint y)
+    {
+        assert(x < width);
+        assert(y < height);
+        return *((unsigned short *)video_address + y * width + x);
+    }
+
     void printChar(const char c)
     {
-        static Spinlock lock;
-        lock.lock();
         if (c == '\n')
         {
             x = 0;
             y++;
-            lock.unlock();
+            return;
+        }
+        if (c == '\b')
+        {
+            if (x > 0)
+                x--;
+            else if (y > 0)
+            {
+                y--;
+                x = width;
+                char _c = getChar(--x, y);
+                while (x && (_c == 0 || _c == ' '))
+                    _c = getChar(--x, y);
+            }
+            drawChar(0, x, y);
             return;
         }
         if (y >= height)
@@ -64,7 +85,6 @@ namespace Terminal
                 memset((void *)(video_address + (height - 1) * width * 2), 0, width * 2);
             }
         }
-        lock.unlock();
     }
 
     void printInt(String &str, uint32 value)
@@ -112,22 +132,16 @@ namespace Terminal
             str.push(*ptr++);
     }
 
-    Spinlock strLock;
-
     void printStr(const char *str, uint length)
     {
-        strLock.lock();
         for (uint i = 0; i < length; i++)
             printChar(str[i]);
-        strLock.unlock();
     }
 
     void printStr(const String &str)
     {
-        strLock.lock();
         for (uint i = 0; i < str.size(); i++)
             printChar(str[i]);
-        strLock.unlock();
     }
 
     void _sprintf(String &str, const char *format, va_list &va)
@@ -162,7 +176,7 @@ namespace Terminal
                 break;
 
             case 'S':
-                printStr(str, ((String*)va_arg(va, String*))->c_str());
+                printStr(str, ((String *)va_arg(va, String *))->c_str());
                 break;
 
             default:

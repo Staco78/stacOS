@@ -4,6 +4,7 @@
 #include <lib/mem.h>
 #include <terminal.h>
 #include <synchronization/spinlock.h>
+#include <log.h>
 
 namespace Memory
 {
@@ -22,6 +23,8 @@ namespace Memory
         {
             physicalPages = (uint64 *)Virtual::getKernelVirtualAddress(Physical::getFreePages(physicalPagesSize / 512));
             memset(physicalPages, 0, physicalPagesSize * 8);
+
+            new (&lock) Spinlock();
         }
     } // namespace Heap
 
@@ -32,6 +35,7 @@ using namespace Memory::Heap;
 
 extern "C" int liballoc_lock()
 {
+    Interrupts::disable();
     lock.lock();
     return 0;
 }
@@ -39,6 +43,7 @@ extern "C" int liballoc_lock()
 extern "C" int liballoc_unlock()
 {
     lock.unlock();
+    Interrupts::enable();
     return 0;
 }
 

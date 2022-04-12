@@ -80,6 +80,7 @@ namespace Devices
             uint32 high = (lApicID & 0xF) << 24;
 
             IOAPIC *ioa = getIoApicForIrq(irq);
+            assert(ioa);
 
             irq -= ioa->GSIBase;
 
@@ -97,6 +98,7 @@ namespace Devices
         void unmaskIRQ(uint8 irq)
         {
             IOAPIC *ioa = getIoApicForIrq(irq);
+            assert(ioa);
             uint reg = 0x10 + irq * 2;
             writeIOAPIC(ioa, reg, readIOAPIC(ioa, reg) & ~(1 << 16));
         }

@@ -61,14 +61,14 @@ namespace Interrupts
         {
             panic("Stack-Segment Fault");
         }
-        void _13(uint32 e)
+        void _13(InterruptState *state)
         {
-            if (e & 1)
+            if (state->err & 1)
                 Terminal::kprintf("external ");
             else
                 Terminal::kprintf("internal ");
 
-            uint8 tbl = ((uint8)(e >> 1)) & 0b11;
+            uint8 tbl = ((uint8)(state->err >> 1)) & 0b11;
             if (tbl == 0)
                 Terminal::kprintf("GTD ");
             else if (tbl == 1 || tbl == 3)
@@ -79,10 +79,10 @@ namespace Interrupts
 
                 Terminal::kprintf("Invalid tbl value (%i) ", tbl);
 
-            Terminal::kprintf("Index: %i\n", (uint16)(e >> 3));
+            Terminal::kprintf("Index: %i\n", (uint16)(state->err >> 3));
             panic("General Protection Fault");
         }
-        void _14(uint32 e)
+        void _14(InterruptState* state)
         {
             uint64 address;
             __asm__ volatile("movq %%cr2, %0"
@@ -90,29 +90,29 @@ namespace Interrupts
 
             // Output an error message.
             Terminal::kprintf("Page fault! ( ");
-            if (e & 0x01)
+            if (state->err & 0x01)
             {
-                if (e & 0x2)
+                if (state->err & 0x2)
                 {
                     Terminal::kprintf("read-only ");
                 }
-                if (e & 0x4)
+                if (state->err & 0x4)
                 {
                     Terminal::kprintf("user-mode ");
                 }
-                if (e & 0x8)
+                if (state->err & 0x8)
                 {
                     Terminal::kprintf("reserved ");
                 }
-                if (e & 0x20)
+                if (state->err & 0x20)
                 {
                     Terminal::kprintf("instruction-fetch ");
                 }
-                if (e & 0x40)
+                if (state->err & 0x40)
                 {
                     Terminal::kprintf("protection-key-violation ");
                 }
-                if (e & 0x80)
+                if (state->err & 0x80)
                 {
                     Terminal::kprintf("shadow-stack-access");
                 }
@@ -128,22 +128,22 @@ namespace Interrupts
         {
             Devices::PIC::init(); // remap IRQ and disable it
 
-            IDT::setEntry(0, (uint64)_0);
-            IDT::setEntry(1, (uint64)_1);
-            IDT::setEntry(2, (uint64)_2);
-            IDT::setEntry(3, (uint64)_3);
-            IDT::setEntry(4, (uint64)_4);
-            IDT::setEntry(5, (uint64)_5);
-            IDT::setEntry(6, (uint64)_6);
-            IDT::setEntry(7, (uint64)_7);
-            IDT::setEntry(8, (uint64)_8);
-            IDT::setEntry(9, (uint64)_9);
-            IDT::setEntry(10, (uint64)_10);
-            IDT::setEntry(11, (uint64)_11);
-            IDT::setEntry(12, (uint64)_12);
-            IDT::setEntry(13, (uint64)_13);
-            IDT::setEntry(14, (uint64)_14);
-        }
+            addEntry(0, _0);
+            addEntry(1, _1);
+            addEntry(2, _2);
+            addEntry(3, _3);
+            addEntry(4, _4);
+            addEntry(5, _5);
+            addEntry(6, _6);
+            addEntry(7, _7);
+            addEntry(8, _8);
+            addEntry(9, _9);
+            addEntry(10, _10);
+            addEntry(11, _11);
+            addEntry(12, _12);
+            addEntry(13, _13);
+            addEntry(14, _14);
+        } 
     } // namespace Exceptions
 
 } // namespace Interrupts

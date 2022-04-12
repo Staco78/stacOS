@@ -16,6 +16,7 @@ namespace Devices
         void add(uint8 ID, uint32 address, uint32 GSI);
         void remapIRQ(uint8 source, uint8 destination);
         uint8 getIRQRemap(uint8 irq);
+        IOAPIC *getIoApicForIrq(uint8 irq);
         void addIRQMapping(uint8 irq, uint8 vector, uint8 lApicID);
         void maskIRQ(uint8 irq);
         void unmaskIRQ(uint8 irq);

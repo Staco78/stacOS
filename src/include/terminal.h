@@ -8,6 +8,7 @@ namespace Terminal
 {
     void init();
     void drawChar(const char c, uint x, uint y);
+    void printChar(const char c);
     void sprintf(String &str, const char *format, ...);
     void _sprintf(String &str, const char *format, va_list &va);
     void kprintf(const char *format, ...);

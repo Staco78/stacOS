@@ -10,6 +10,7 @@ namespace Interrupts
 
     struct InterruptState : Registers
     {
+        uint64 err;
         uint64 rip, cs, rflags, rsp, ss;
     };
 
@@ -18,6 +19,10 @@ namespace Interrupts
         void init();
         void initAp();
         void setEntry(uint8 entry, uint64 isr, uint8 ist = 0);
+        inline void setEntry(uint8 entry, void (*isr)(), uint8 ist = 0)
+        {
+            setEntry(entry, (uint64)isr, ist);
+        }
     } // namespace IDT
 
     namespace Exceptions
@@ -59,5 +64,17 @@ namespace Interrupts
         else
             Devices::PIC::sendEOI(irq);
     }
+
+    void addEntry(uint8 vector, uint64 entry);
+    inline void addEntry(uint8 vector, void (*entry)())
+    {
+        addEntry(vector, (uint64)entry);
+    }
+    inline void addEntry(uint8 vector, void (*entry)(InterruptState *state))
+    {
+        addEntry(vector, (uint64)entry);
+    }
+
+    void removeEntry(uint8 vector);
 
 } // namespace Interrupts

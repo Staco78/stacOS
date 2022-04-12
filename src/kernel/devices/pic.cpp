@@ -47,6 +47,7 @@ namespace Devices
 
         void unmaskIRQ(uint8 num)
         {
+            assert(num <= 15);
             uint16 port;
             if (num < 8)
             {

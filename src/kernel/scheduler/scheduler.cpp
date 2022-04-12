@@ -65,18 +65,20 @@ namespace Scheduler
 
         CPU *cpu = getCurrentCPU();
 
+        new (&cpu->threads) Synchronized<Queue<Thread *>>();
         cpu->threads.realloc(1024);
 
         cpu->currentProcess = &kernelProcess;
-        cpu->idleThread = createThread(&kernelProcess, (uint64)idleTask);
+        cpu->idleThread = createThread(&kernelProcess, (uint64)idleTask, false);
         cpu->idleThread->id = 0;
         cpu->currentThread = cpu->idleThread;
     }
 
-    extern "C" void schedulerTickHandler()
+    extern "C" void schedulerTickHandler(uint64 rsp)
     {
         Devices::LAPIC::sendEOI();
         CPU *cpu = getCurrentCPU();
+        cpu->currentThread->kernelStack = rsp;
         cpu->threads.lock();
         cpu->threads.push(cpu->currentThread);
         cpu->threads.unlock();
@@ -86,7 +88,7 @@ namespace Scheduler
     __attribute__((noreturn)) void start()
     {
 
-        Interrupts::IDT::setEntry(32, (uint64)_schedulerTickHandler);
+        Interrupts::IDT::setEntry(32, _schedulerTickHandler);
         Devices::LAPIC::initTimer(32, Devices::LAPIC::PERIODIC, 10'000'000); // 10 ms
 
         switchNext();
@@ -153,21 +155,20 @@ namespace Scheduler
                 if (_cpu->ID == cpu->ID)
                     continue;
 
+                if (_cpu->threads.empty())
+                    continue;
+
                 if (_cpu->threads.tryLock())
                 {
-
-                    if (_cpu->threads.empty())
-                    {
-                        _cpu->threads.unlock();
-                        continue;
-                    }
                     thread = _cpu->threads.pop();
-
                     _cpu->threads.unlock();
                 }
             }
             if (thread == nullptr)
+            {
+                cpu->threads.unlock();
                 switchTo(cpu->idleThread);
+            }
         }
         else
             thread = cpu->threads.pop();

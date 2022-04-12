@@ -16,6 +16,7 @@ namespace KernelSymbols
         fs::FileNode *file = (fs::FileNode *)node;
         uint64 size = file->getSize();
         char *buf = (char *)kmalloc(size);
+        assert(buf);
         file->read(0, size, buf);
 
         new (&map) StringHashMap<uint64>(*(uint32 *)buf);

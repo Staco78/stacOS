@@ -11,6 +11,16 @@
 #include <symbols.h>
 #include <modules.h>
 
+void kernelSchedulerMain()
+{
+    KernelSymbols::install();
+    Modules::init();
+
+    Modules::loadModule((fs::FileNode *)fs::resolvePath("/initrd/ps2.ko"));
+
+    Scheduler::switchNext();
+}
+
 extern "C" void kernelMain(void *multiboot_struct, uint64 cr3)
 {
     Scheduler::preinit(cr3);
@@ -30,11 +40,9 @@ extern "C" void kernelMain(void *multiboot_struct, uint64 cr3)
 
     fs::Initrd::init();
 
-    KernelSymbols::install();
-    Modules::init();
-    Modules::loadModule((fs::FileNode *)fs::resolvePath("/initrd/testModule.ko"));
-
     Scheduler::init();
     Scheduler::startSMP();
+    Scheduler::addThread(Scheduler::createThread(Scheduler::getCurrentProcess(), (uint64)&kernelSchedulerMain, false));
+
     Scheduler::start();
 }

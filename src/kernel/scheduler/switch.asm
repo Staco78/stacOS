@@ -1,42 +1,7 @@
+%include "macros.asm"
+
 [bits 64]
 section .text
-
-
-%macro push_all_regs 0
-push r15
-push r14
-push r13
-push r12
-push r11
-push r10
-push r9
-push r8
-push rdx
-push rcx
-push rbx
-push rax
-push rbp
-push rsi
-push rdi
-%endmacro
-
-%macro pop_all_regs 0
-pop r15
-pop r14
-pop r13
-pop r12
-pop r11
-pop r10
-pop r9
-pop r8
-pop rdx
-pop rcx
-pop rbx
-pop rax
-pop rbp
-pop rsi
-pop rdi
-%endmacro
 
 global idleTask
 idleTask:
@@ -48,9 +13,11 @@ jmp _
 
 global _schedulerTickHandler
 _schedulerTickHandler:
+push qword 0
 push_all_regs
+mov rdi, rsp
 extern schedulerTickHandler
-call schedulerTickHandler
+jmp schedulerTickHandler
 
 
 
@@ -64,4 +31,5 @@ mov cr3, rsi
 
 not_change_cr3:
 pop_all_regs
+add rsp, 8
 iretq

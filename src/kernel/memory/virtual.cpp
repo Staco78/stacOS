@@ -20,16 +20,19 @@ namespace Memory
                          : "memory");
         }
 
-        void mapPage(uint64 physicalAddress, uint64 virtualAddress, uint64 flags)
+        void mapPage(uint64 physicalAddress, uint64 virtualAddress, uint64 flags, AddressSpace *addressSpace)
         {
             physicalAddress &= ~0xFFF;
 
+            if (!addressSpace)
+                addressSpace = &Scheduler::getCurrentProcess()->addressSpace;
+
             uint pml4EntryIndex = (virtualAddress >> 39) & 0x1FF;
-            PML *pml4Entry = &Scheduler::getCurrentProcess()->pml4[pml4EntryIndex];
+            PML *pml4Entry = &addressSpace->pml4()[pml4EntryIndex];
             if (!pml4Entry->bits.present)
             {
                 uint64 address = Physical::getFreePages();
-                pml4Entry->raw = address | 3;
+                pml4Entry->raw = address | 7;
                 memset((void *)getKernelVirtualAddress(address), 0, 4096);
             }
 
@@ -38,7 +41,7 @@ namespace Memory
             if (!pml3Entry->bits.present)
             {
                 uint64 address = Physical::getFreePages();
-                pml3Entry->raw = address | 3;
+                pml3Entry->raw = address | 7;
                 memset((void *)getKernelVirtualAddress(address), 0, 4096);
             }
 
@@ -47,7 +50,7 @@ namespace Memory
             if (!pml2Entry->bits.present)
             {
                 uint64 address = Physical::getFreePages();
-                pml2Entry->raw = address | 3;
+                pml2Entry->raw = address | 7;
                 memset((void *)getKernelVirtualAddress(address), 0, 4096);
             }
 
@@ -65,7 +68,7 @@ namespace Memory
             const char *NOT_MAPED = "unmapPage: page not mapped";
 
             uint pml4EntryIndex = (virtualAddress >> 39) & 0x1FF;
-            PML *pml4Entry = &Scheduler::getCurrentProcess()->pml4[pml4EntryIndex];
+            PML *pml4Entry = &Scheduler::getCurrentProcess()->addressSpace.pml4()[pml4EntryIndex];
             if (!pml4Entry->bits.present)
                 panic(NOT_MAPED);
 
@@ -93,8 +96,12 @@ namespace Memory
         static constexpr uint64 USER_MAX_ADDRESS = 0x8000'0000'0000;
         static constexpr uint64 KERNEL_MIN_ADDRESS = 0xFFFF'8080'0000'0000;
 
-        uint64 findFreePages(uint64 size, bool user)
+        uint64 findFreePages(uint64 size, bool user, AddressSpace *addressSpace)
         {
+
+            if (!addressSpace)
+                addressSpace = &Scheduler::getCurrentProcess()->addressSpace;
+
             uint64 pml4Index = 0;
             uint64 pml3Index = 0;
             uint64 pml2Index = 0;
@@ -116,7 +123,7 @@ namespace Memory
             uint64 found = 0;
             uint64 returnAddress;
 
-            PML *root = Scheduler::getCurrentProcess()->pml4;
+            PML *root = addressSpace->pml4();
 
             for (; pml4Index < maxPML4; pml4Index++)
             {
@@ -217,6 +224,45 @@ namespace Memory
             return r;
         }
 
+        AddressSpace createAddressSpace()
+        {
+            AddressSpace space;
+            space.cr3 = Physical::getFreePages();
+
+            PML *kernelPML = Scheduler::getKernelProcess()->addressSpace.pml4();
+            memcpy(space.pml4(), kernelPML, 4096);
+            return space;
+        }
+
     } // namespace Virtual
+
+    uint64 getFreePages(uint64 size, uint64 flags, Virtual::AddressSpace *addressSpace)
+    {
+        if (!addressSpace)
+            addressSpace = &Scheduler::getCurrentProcess()->addressSpace;
+
+        Virtual::lock.lock();
+        uint64 virtualAddress = Virtual::findFreePages(size, flags & Virtual::USER, addressSpace);
+        for (uint64 i = 0; i < size * 4096; i += 4096)
+        {
+            Physical::lock.lock();
+            Virtual::mapPage(Physical::getFreePages(1), virtualAddress + i, flags, addressSpace);
+            Physical::lock.unlock();
+        }
+        Virtual::lock.unlock();
+        return virtualAddress;
+    }
+
+    uint64 allocSpace(uint64 virtualAddress, uint size, uint64 flags, Virtual::AddressSpace *addressSpace)
+    {
+        uint64 physical = Physical::getFreePages(size);
+        uint64 offset = 0;
+        for (uint i = 0; i < size; i++)
+        {
+            Virtual::mapPage(physical + offset, virtualAddress + offset, flags, addressSpace);
+            offset += 4096;
+        }
+        return physical;
+    }
 
 } // namespace Memory

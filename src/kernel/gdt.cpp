@@ -17,11 +17,11 @@ namespace gdt
 
     void install()
     {
-        SegmentDescriptor *gdt = (SegmentDescriptor *)kmalloc(3 * sizeof(SegmentDescriptor) + sizeof(LongSegmentDescriptor));
-        memset(gdt, 0, 3 * sizeof(SegmentDescriptor) + sizeof(LongSegmentDescriptor));
+        SegmentDescriptor *gdt = (SegmentDescriptor *)kmalloc(5 * sizeof(SegmentDescriptor) + sizeof(LongSegmentDescriptor));
+        memset(gdt, 0, 5 * sizeof(SegmentDescriptor) + sizeof(LongSegmentDescriptor));
 
         gdt[1].limitLow = 0xFFFF;
-        gdt[1].accessByte = PRESENT | NOT_SYS | EXEC | DC | RW;
+        gdt[1].accessByte = PRESENT | NOT_SYS | EXEC | RW;
         gdt[1].flags = GRAN | LONG;
         gdt[1].limitHigh = 0xF;
 
@@ -30,9 +30,20 @@ namespace gdt
         gdt[2].flags = GRAN | SIZE;
         gdt[2].limitHigh = 0xF;
 
-        Scheduler::CPU *cpu = Scheduler::getCurrentCPU();
+        gdt[3].limitLow = 0xFFFF;
+        gdt[3].accessByte = PRESENT | NOT_SYS | EXEC | RW | 0b01100000; // DPL 3
+        gdt[3].flags = GRAN | LONG;
+        gdt[3].limitHigh = 0xF;
 
-        LongSegmentDescriptor *tss = (LongSegmentDescriptor *)&gdt[3];
+        gdt[4].limitLow = 0xFFFF;
+        gdt[4].accessByte = PRESENT | NOT_SYS | RW | 0b01100000; // DPL 3
+        gdt[4].flags = GRAN | SIZE;
+        gdt[4].limitHigh = 0xF;
+
+        Scheduler::CPU *cpu = Scheduler::getCurrentCPU();
+        assert(cpu);
+
+        LongSegmentDescriptor *tss = (LongSegmentDescriptor *)&gdt[5];
         tss->limitLow = sizeof(TSS);
         uint64 TSSAddress = (uint64)&cpu->TSS;
         tss->baseLow = (uint16)TSSAddress;
@@ -43,9 +54,9 @@ namespace gdt
         tss->flags = LONG;
 
         cpu->gdt.base = (uint64)gdt;
-        cpu->gdt.limit = 3 * sizeof(SegmentDescriptor) + sizeof(LongSegmentDescriptor) - 1;
+        cpu->gdt.limit = 5 * sizeof(SegmentDescriptor) + sizeof(LongSegmentDescriptor) - 1;
         __asm__ volatile("lgdt (%%rax)" ::"a"(&cpu->gdt));
-        __asm__ volatile("mov $(3 * 8), %ax\n"
+        __asm__ volatile("mov $(5 * 8), %ax\n"
                          "ltr %ax");
 
         cpu->TSS.IST1 = (uint64)kmalloc(4096);

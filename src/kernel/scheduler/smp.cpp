@@ -22,6 +22,7 @@ namespace Scheduler
     extern "C" void apEntry()
     {
         Scheduler::initCPU(Scheduler::getAllCPUs()[apCoreIndex]);
+        Scheduler::init();
         gdt::install();
         Interrupts::IDT::initAp();
         Devices::LAPIC::init();
@@ -29,7 +30,6 @@ namespace Scheduler
 
         started = true;
 
-        Scheduler::init();
         Scheduler::start();
     }
 
@@ -49,7 +49,7 @@ namespace Scheduler
 
         Memory::Virtual::mapPage((uint64)&apBootStart, (uint64)&apBootStart, Memory::Virtual::WRITE);
 
-        apCr3 = getCurrentProcess()->cr3;
+        apCr3 = getCurrentProcess()->addressSpace.cr3;
 
         for (uint i = 0; i < cores.size(); i++)
         {

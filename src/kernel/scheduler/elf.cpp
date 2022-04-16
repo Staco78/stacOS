@@ -41,6 +41,7 @@ namespace Modules
         if (header->e_type != ET_REL)
         {
             Log::warn("Unable to load module: Type not supported");
+            return false;
         }
 
         uint size = header->e_shnum * header->e_shentsize;
@@ -200,3 +201,53 @@ namespace Modules
         return true;
     }
 } // namespace Modules
+
+namespace ELF
+{
+    void loadExecutable(Scheduler::Process *process, fs::FileNode *file)
+    {
+        assert(file);
+        Elf64_Header header;
+        file->read(0, sizeof(Elf64_Header), &header);
+
+        if (header.e_ident[EI_MAG0] != ELFMAG0 || header.e_ident[EI_MAG1] != ELFMAG1 || header.e_ident[EI_MAG2] != ELFMAG2 || header.e_ident[EI_MAG3] != ELFMAG3)
+            assert(!"Unable to load executable: invalid magic");
+
+        if (header.e_ident[EI_CLASS] != ELFCLASS64)
+            assert(!"Unable to load executable: 32 bit not supported");
+
+        if (header.e_ident[EI_DATA] != ELFDATA2LSB)
+            assert(!"Unable to load executable: big endian not supported");
+
+        if (header.e_type != ET_EXEC)
+            assert(!"Unable to load executable: Not executable");
+
+        uint segmentsSize = header.e_phnum * header.e_phentsize;
+        Elf64_Phdr *segments = (Elf64_Phdr *)kmalloc(segmentsSize);
+        file->read(header.e_phoff, segmentsSize, segments);
+
+        for (uint i = 0; i < header.e_phnum; i++)
+        {
+            Elf64_Phdr *segment = &segments[i];
+            assert(segment->p_memsz >= segment->p_filesz);
+            uint64 flags = Memory::Virtual::USER;
+            if (segment->p_flags & PF_W)
+                flags |= Memory::Virtual::WRITE;
+
+            // TODO detect if we have nx
+            // if (!(segment->p_flags & PF_X))
+            // flags |= Memory::Virtual::NX;
+
+            uint64 physicalAddress = Memory::allocSpace(segment->p_vaddr, segment->p_memsz / 4096 + (segment->p_memsz % 4096 != 0), flags, &process->addressSpace);
+            uint64 kernelVirtualAddress = Memory::Virtual::getKernelVirtualAddress(physicalAddress);
+
+            file->read(segment->p_offset, segment->p_filesz, (void *)kernelVirtualAddress);
+
+            memset((void *)(kernelVirtualAddress + segment->p_filesz), 0, segment->p_memsz - segment->p_filesz);
+        }
+
+        process->entryPoint = header.e_entry;
+
+        kfree(segments);
+    }
+} // namespace ELF

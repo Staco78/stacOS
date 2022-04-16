@@ -13,11 +13,13 @@ jmp _
 
 global _schedulerTickHandler
 _schedulerTickHandler:
-push qword 0
+cli
+swapgs_if_necessary
+sub rsp, 8
 push_all_regs
 mov rdi, rsp
 extern schedulerTickHandler
-jmp schedulerTickHandler
+call schedulerTickHandler
 
 
 
@@ -32,4 +34,5 @@ mov cr3, rsi
 not_change_cr3:
 pop_all_regs
 add rsp, 8
+swapgs_if_necessary
 iretq

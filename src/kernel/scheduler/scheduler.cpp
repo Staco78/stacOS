@@ -33,6 +33,7 @@ namespace Scheduler
     {
         cpu::writeMSR(cpu::MSR_GS_BASE, (uint64)cpu);
         cpu->cpu = cpu;
+        cpu->currentProcess = &kernelProcess;
     }
 
     Vector<CPU *> &getAllCPUs()
@@ -40,20 +41,26 @@ namespace Scheduler
         return processors;
     }
 
+    Process *getKernelProcess()
+    {
+        assert(schedulerState >= SchedulerState::KernelProcessInit);
+        return &kernelProcess;
+    }
+
     Process *getCurrentProcess()
     {
+        if (schedulerState == Scheduler::Started)
+            return getCurrentCPU()->currentProcess;
         if (schedulerState >= SchedulerState::KernelProcessInit)
             return &kernelProcess;
-        else
-            return getCurrentCPU()->currentProcess;
+        return nullptr;
     }
 
     void preinit(uint64 cr3)
     {
         kernelProcess.id = 0;
         kernelProcess.name = "kernel";
-        kernelProcess.cr3 = cr3;
-        kernelProcess.pml4 = (Memory::Virtual::PML *)Memory::Virtual::getKernelVirtualAddress(cr3);
+        kernelProcess.addressSpace.cr3 = cr3;
 
         schedulerState = Scheduler::KernelProcessInit;
     }
@@ -68,17 +75,17 @@ namespace Scheduler
         new (&cpu->threads) Synchronized<Queue<Thread *>>();
         cpu->threads.realloc(1024);
 
-        cpu->currentProcess = &kernelProcess;
         cpu->idleThread = createThread(&kernelProcess, (uint64)idleTask, false);
         cpu->idleThread->id = 0;
         cpu->currentThread = cpu->idleThread;
     }
 
-    extern "C" void schedulerTickHandler(uint64 rsp)
+    extern "C" __attribute__((noreturn)) void schedulerTickHandler(uint64 rsp)
     {
         Devices::LAPIC::sendEOI();
         CPU *cpu = getCurrentCPU();
-        cpu->currentThread->kernelStack = rsp;
+        cpu->lockLevel = 1;
+        assert(cpu->currentThread);
         cpu->threads.lock();
         cpu->threads.push(cpu->currentThread);
         cpu->threads.unlock();
@@ -167,11 +174,15 @@ namespace Scheduler
             if (thread == nullptr)
             {
                 cpu->threads.unlock();
+                assert(cpu->idleThread);
                 switchTo(cpu->idleThread);
             }
         }
         else
+        {
             thread = cpu->threads.pop();
+            assert(thread);
+        }
 
         cpu->threads.unlock();
 
@@ -187,16 +198,18 @@ namespace Scheduler
             }
         }
 
+        assert(thread);
         switchTo(thread);
     }
 
     __attribute__((noreturn)) void switchTo(Thread *thread)
     {
+        assert(thread);
         CPU *cpu = getCurrentCPU();
 
-        cpu->TSS.RSP0 = thread->kernelStack;
+        cpu->TSS.RSP0 = thread->kernelStack + sizeof(Interrupts::InterruptState);
         cpu->currentThread = thread;
-        uint64 cr3 = thread->process == cpu->currentProcess ? 0 : thread->process->cr3;
+        uint64 cr3 = thread->process == cpu->currentProcess ? 0 : thread->process->addressSpace.cr3;
         cpu->currentProcess = thread->process;
         doSwitch(thread->kernelStack, cr3);
     }

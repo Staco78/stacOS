@@ -24,6 +24,7 @@ namespace Memory
     namespace Virtual
     {
         extern Spinlock lock;
+
         union PML
         {
             struct
@@ -60,14 +61,22 @@ namespace Memory
         {
             return physicalAddress + 0xFFFF'8000'0000'0000;
         }
+
+        struct AddressSpace
+        {
+            uint64 cr3;
+            inline constexpr PML *pml4() { return (PML *)getKernelVirtualAddress(cr3); }
+        };
+
         constexpr inline uint64 makeCanonical(uint64 address)
         {
             return address & 1UL << 47 ? address | 0xFFFF000000000000 : address & 0xFFFFFFFFFFFF;
         }
-        void mapPage(uint64 physicalAddress, uint64 virtualAddress, uint64 flags);
+        void mapPage(uint64 physicalAddress, uint64 virtualAddress, uint64 flags, AddressSpace *addressSpace = nullptr);
         void unmapPage(uint64 virtualAddress);
         uint64 findFreePages(uint64 size = 1, bool user = false);
         void *allocModuleSpace(uint64 size);
+        AddressSpace createAddressSpace();
     } // namespace Virtual
 
     namespace Heap
@@ -81,17 +90,8 @@ namespace Memory
         Heap::init();
     }
 
-    inline uint64 getFreePages(uint64 size = 1, uint64 flags = Virtual::WRITE)
-    {
-        Virtual::lock.lock();
-        uint64 virtualAddress = Virtual::findFreePages(size, flags & Virtual::USER);
-        for (uint64 i = 0; i < size * 4096; i += 4096)
-        {
-            Physical::lock.lock();
-            Virtual::mapPage(Physical::getFreePages(1), virtualAddress + i, flags);
-            Physical::lock.unlock();
-        }
-        Virtual::lock.unlock();
-        return virtualAddress;
-    }
+    uint64 getFreePages(uint64 size = 1, uint64 flags = Virtual::WRITE, Virtual::AddressSpace *addressSpace = nullptr);
+
+    // size in pages
+    uint64 allocSpace(uint64 virtualAddress, uint size, uint64 flags = Virtual::WRITE, Virtual::AddressSpace *addressSpace = nullptr);
 } // namespace Memory

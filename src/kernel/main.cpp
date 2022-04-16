@@ -18,6 +18,8 @@ void kernelSchedulerMain()
 
     Modules::loadModule((fs::FileNode *)fs::resolvePath("/initrd/ps2.ko"));
 
+    Scheduler::loadProcess("/initrd/app");
+
     Scheduler::switchNext();
 }
 

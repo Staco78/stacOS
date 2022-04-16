@@ -95,38 +95,38 @@ namespace Interrupts
 
             memset(idt, 0, sizeof(Entry) * maxEntries);
 
-            setEntry(0, isr_0);
-            setEntry(1, isr_1);
-            setEntry(2, isr_2);
-            setEntry(3, isr_3);
-            setEntry(4, isr_4);
-            setEntry(5, isr_5);
-            setEntry(6, isr_6);
-            setEntry(7, isr_7);
-            setEntry(8, isr_8);
-            setEntry(9, isr_9);
-            setEntry(10, isr_10);
-            setEntry(11, isr_11);
-            setEntry(12, isr_12);
-            setEntry(13, isr_13);
-            setEntry(14, isr_14);
-            setEntry(15, isr_15);
-            setEntry(16, isr_16);
-            setEntry(17, isr_17);
-            setEntry(18, isr_18);
-            setEntry(19, isr_19);
-            setEntry(20, isr_20);
-            setEntry(21, isr_21);
-            setEntry(22, isr_22);
-            setEntry(23, isr_23);
-            setEntry(24, isr_24);
-            setEntry(25, isr_25);
-            setEntry(26, isr_26);
-            setEntry(27, isr_27);
-            setEntry(28, isr_28);
-            setEntry(29, isr_29);
-            setEntry(30, isr_30);
-            setEntry(31, isr_31);
+            setEntry(0, isr_0, 1);
+            setEntry(1, isr_1, 1);
+            setEntry(2, isr_2, 1);
+            setEntry(3, isr_3, 1);
+            setEntry(4, isr_4, 1);
+            setEntry(5, isr_5, 1);
+            setEntry(6, isr_6, 1);
+            setEntry(7, isr_7, 1);
+            setEntry(8, isr_8, 1);
+            setEntry(9, isr_9, 1);
+            setEntry(10, isr_10, 1);
+            setEntry(11, isr_11, 1);
+            setEntry(12, isr_12, 1);
+            setEntry(13, isr_13, 1);
+            setEntry(14, isr_14, 1);
+            setEntry(15, isr_15, 1);
+            setEntry(16, isr_16, 1);
+            setEntry(17, isr_17, 1);
+            setEntry(18, isr_18, 1);
+            setEntry(19, isr_19, 1);
+            setEntry(20, isr_20, 1);
+            setEntry(21, isr_21, 1);
+            setEntry(22, isr_22, 1);
+            setEntry(23, isr_23, 1);
+            setEntry(24, isr_24, 1);
+            setEntry(25, isr_25, 1);
+            setEntry(26, isr_26, 1);
+            setEntry(27, isr_27, 1);
+            setEntry(28, isr_28, 1);
+            setEntry(29, isr_29, 1);
+            setEntry(30, isr_30, 1);
+            setEntry(31, isr_31, 1);
 
             setEntry(32, irq_0);
             setEntry(33, irq_1);
@@ -167,6 +167,6 @@ namespace Interrupts
             idt[entry].IST = ist;
         }
 
-        } // namespace IDT
+    } // namespace IDT
 
 } // namespace Interrupts

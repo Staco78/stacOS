@@ -17,4 +17,4 @@ namespace cpu
                          : "c"(msr));
         return lo | ((uint64)hi << 32);
     }
-} // namespace Cpu
+} // namespace cpu

@@ -20,8 +20,9 @@ namespace Scheduler
         const char *name;
         pid id;
 
-        uint64 cr3;
-        Memory::Virtual::PML *pml4;
+        uint64 entryPoint;
+
+        Memory::Virtual::AddressSpace addressSpace;
 
         Vector<Thread *> threads;
     };
@@ -41,6 +42,8 @@ namespace Scheduler
         uint8 ID;
         uint8 lApicID;
         bool isBsp;
+
+        uint lockLevel = 1;
 
         gdt::GdtPtr gdt;
         gdt::TSS TSS;
@@ -62,6 +65,11 @@ namespace Scheduler
     void registerCPU(bool bsp, uint64 lApicAddress, uint8 ID, uint8 lApicID);
     void initCPU(CPU *cpu);
     extern "C" CPU *getCurrentCPU();
+    inline bool isCPUInitialized()
+    {
+        return cpu::readMSR(cpu::MSR_GS_BASE) != 0;
+    }
+    Process *getKernelProcess();
     Process *getCurrentProcess();
     Vector<CPU *> &getAllCPUs();
     void startSMP();
@@ -72,7 +80,15 @@ namespace Scheduler
     void switchNext();
     void switchTo(Thread *thread);
 
-    Thread *createThread(Process *process, uint64 entry, bool userThread = true);
+    Thread *createThread(Process *process, uint64 entry = 0, bool userThread = true);
     void addThread(Thread *thread);
 
+    Process *createProcess(const char *name);
+    Process *loadProcess(const char *path);
+
 } // namespace Scheduler
+
+namespace ELF
+{
+    void loadExecutable(Scheduler::Process *process, fs::FileNode *file);
+}

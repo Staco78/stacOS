@@ -20,24 +20,26 @@ namespace Scheduler
         thread->process = process;
         thread->id = threadIdCounter++;
 
-        uint64 kernelVirtualStackAddress = Memory::getFreePages(KERNEL_STACK_SIZE / 4096);
+        uint64 kernelVirtualStackAddress = Memory::getFreePages(KERNEL_STACK_SIZE / 4096, Memory::Virtual::WRITE, &process->addressSpace);
         thread->kernelStack = kernelVirtualStackAddress + KERNEL_STACK_SIZE - sizeof(Interrupts::InterruptState);
 
         Interrupts::InterruptState *state = (Interrupts::InterruptState *)thread->kernelStack;
         memset(state, 0, sizeof(Interrupts::InterruptState));
 
-        state->rip = entry;
-        state->cs = 8;
-        state->ss = 0x10;
+        state->rip = entry ? entry : process->entryPoint;
         state->rflags = 0x202;
 
         if (userThread)
         {
-            uint64 userVirtualStackAddress = Memory::getFreePages(USER_STACK_SIZE / 4096, Memory::Virtual::WRITE | Memory::Virtual::USER);
+            state->cs = 0x1b;
+            state->ss = 0x23;
+            uint64 userVirtualStackAddress = Memory::getFreePages(USER_STACK_SIZE / 4096, Memory::Virtual::WRITE | Memory::Virtual::USER, &process->addressSpace);
             state->rsp = userVirtualStackAddress + USER_STACK_SIZE;
         }
         else
         {
+            state->cs = 0x8;
+            state->ss = 0x10;
             state->rsp = thread->kernelStack;
         }
 

@@ -16,10 +16,32 @@ namespace Interrupts
             Devices::LAPIC::init();
     }
 
+    void enable()
+    {
+        if (!Scheduler::isCPUInitialized())
+            __asm__ volatile("sti");
+        else
+        {
+            Scheduler::CPU *cpu = Scheduler::getCurrentCPU();
+            assert(cpu->lockLevel > 0);
+            if (--cpu->lockLevel == 0)
+                __asm__ volatile("sti");
+        }
+    }
+
+    void disable()
+    {
+        __asm__ volatile("cli");
+        if (Scheduler::isCPUInitialized())
+            Scheduler::getCurrentCPU()->lockLevel++;
+    }
+
     void (*entries[256])(InterruptState *state);
 
     extern "C" void interruptsHandler(uint vector, InterruptState *state)
     {
+        Scheduler::getCurrentCPU()->lockLevel = 1;
+        assert(state);
         assert(entries[vector]);
         entries[vector](state);
     }
@@ -39,7 +61,9 @@ namespace Interrupts
             {
                 if (Devices::IOAPIC::getIoApicForIrq(vector))
                 {
-                    Devices::IOAPIC::addIRQMapping(vector, vector, Scheduler::getCurrentCPU()->lApicID);
+                    Scheduler::CPU *cpu = Scheduler::getCurrentCPU();
+                    assert(cpu);
+                    Devices::IOAPIC::addIRQMapping(vector, vector, cpu->lApicID);
                     Devices::IOAPIC::unmaskIRQ(vector);
                 }
             }

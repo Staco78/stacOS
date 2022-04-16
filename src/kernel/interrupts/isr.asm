@@ -7,36 +7,38 @@ extern interruptsHandler
 
 
 %macro ISR_COMMON 1
+swapgs_if_necessary 16
 push_all_regs
 mov rdi, %1
 mov rsi, rsp
 call interruptsHandler
 pop_all_regs
 add rsp, 8
+swapgs_if_necessary
 iretq
 %endmacro
 
 %macro IRQ 2
 global irq_%1
 irq_%1:
-cli
-push qword 0
-ISR_COMMON %2
+    cli
+    push qword 0
+    ISR_COMMON %2
 %endmacro
 
 %macro ISR_ERROR 1
 global isr_%1
 isr_%1:
-cli
-ISR_COMMON %1
+    cli
+    ISR_COMMON %1
 %endmacro
 
 %macro ISR_NO_ERROR 1
 global isr_%1
 isr_%1:
-cli
-push qword 0
-ISR_COMMON %1
+    cli
+    push qword 0
+    ISR_COMMON %1
 %endmacro
 
 

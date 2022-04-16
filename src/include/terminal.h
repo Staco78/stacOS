@@ -13,4 +13,13 @@ namespace Terminal
     void _sprintf(String &str, const char *format, va_list &va);
     void kprintf(const char *format, ...);
     void printStr(const char *str, uint length);
+
+    namespace safe
+    {
+        void print(const char *str);
+        void println(const char *str);
+        void printHex(uint64 value);
+        void printInt(uint64 value);
+    } // namespace safe
+
 } // namespace Terminal

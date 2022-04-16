@@ -33,3 +33,10 @@ pop rcx
 pop rbx
 pop rax
 %endmacro
+
+
+%macro swapgs_if_necessary 0-1 8
+test byte [rsp + %1], 3
+jz $+5
+swapgs
+%endmacro

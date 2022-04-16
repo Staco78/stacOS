@@ -5,7 +5,11 @@
 
 __attribute__((noreturn)) inline void _panic(const char *str, uint32 line, const char *file)
 {
-    Terminal::kprintf("Kernel panic: %s \n%s line %i", str, file, line);
+    Terminal::safe::print("Kernel panic: ");
+    Terminal::safe::println(str);
+    Terminal::safe::print(file);
+    Terminal::safe::print(" line ");
+    Terminal::safe::printInt(line);
 halt:
     __asm__ volatile("cli\nhlt");
     goto halt;

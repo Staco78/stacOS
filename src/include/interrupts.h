@@ -31,15 +31,8 @@ namespace Interrupts
     } // namespace Exceptions
 
     void init();
-    inline void enable()
-    {
-        __asm__ volatile("sti");
-    }
-
-    inline void disable()
-    {
-        __asm__ volatile("cli");
-    }
+    void enable();
+    void disable();
 
     inline void maskIRQ(uint8 irq)
     {

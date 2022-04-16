@@ -5,6 +5,7 @@
 #include <terminal.h>
 #include <synchronization/spinlock.h>
 #include <log.h>
+#include <debug.h>
 
 namespace Memory
 {

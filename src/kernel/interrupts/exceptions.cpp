@@ -7,6 +7,42 @@ namespace Interrupts
 {
     namespace Exceptions
     {
+        void dump(Interrupts::InterruptState *state)
+        {
+#define print(r)                            \
+    {                                       \
+        Terminal::safe::print(#r ": ");     \
+        Terminal::safe::printHex(state->r); \
+        Terminal::safe::print("\n");        \
+    }
+
+            Terminal::safe::println("\nDump:");
+
+            print(rip);
+            print(cs);
+            print(rflags);
+            print(rsp);
+            print(ss);
+
+            print(r15);
+            print(r14);
+            print(r13);
+            print(r12);
+            print(r11);
+            print(r10);
+            print(r9);
+            print(r8);
+            print(rbp);
+            print(rdi);
+            print(rsi);
+            print(rdx);
+            print(rcx);
+            print(rbx);
+            print(rax);
+
+#undef print
+        }
+
         void _0()
         {
             panic("Divide by zero");
@@ -64,63 +100,72 @@ namespace Interrupts
         void _13(InterruptState *state)
         {
             if (state->err & 1)
-                Terminal::kprintf("external ");
+                Terminal::safe::print("external ");
             else
-                Terminal::kprintf("internal ");
+                Terminal::safe::print("internal ");
 
             uint8 tbl = ((uint8)(state->err >> 1)) & 0b11;
             if (tbl == 0)
-                Terminal::kprintf("GTD ");
+                Terminal::safe::print("GTD ");
             else if (tbl == 1 || tbl == 3)
-                Terminal::kprintf("IDT ");
+                Terminal::safe::print("IDT ");
             else if (tbl == 2)
-                Terminal::kprintf("LDT ");
+                Terminal::safe::print("LDT ");
             else
+            {
+                Terminal::safe::print("Invalid tbl value (");
+                Terminal::safe::printInt(tbl);
+                Terminal::safe::print(") ");
+            }
 
-                Terminal::kprintf("Invalid tbl value (%i) ", tbl);
-
-            Terminal::kprintf("Index: %i\n", (uint16)(state->err >> 3));
+            Terminal::safe::print("Index: ");
+            Terminal::safe::printInt((uint16)(state->err >> 3));
+            Terminal::safe::print("\n");
             panic("General Protection Fault");
         }
-        void _14(InterruptState* state)
+
+        void _14(InterruptState *state)
         {
             uint64 address;
             __asm__ volatile("movq %%cr2, %0"
                              : "=r"(address));
 
             // Output an error message.
-            Terminal::kprintf("Page fault! ( ");
+            Terminal::safe::print("Page fault! ( ");
             if (state->err & 0x01)
             {
                 if (state->err & 0x2)
                 {
-                    Terminal::kprintf("read-only ");
+                    Terminal::safe::print("read-only ");
                 }
                 if (state->err & 0x4)
                 {
-                    Terminal::kprintf("user-mode ");
+                    Terminal::safe::print("user-mode ");
                 }
                 if (state->err & 0x8)
                 {
-                    Terminal::kprintf("reserved ");
+                    Terminal::safe::print("reserved ");
                 }
                 if (state->err & 0x20)
                 {
-                    Terminal::kprintf("instruction-fetch ");
+                    Terminal::safe::print("instruction-fetch ");
                 }
                 if (state->err & 0x40)
                 {
-                    Terminal::kprintf("protection-key-violation ");
+                    Terminal::safe::print("protection-key-violation ");
                 }
                 if (state->err & 0x80)
                 {
-                    Terminal::kprintf("shadow-stack-access");
+                    Terminal::safe::print("shadow-stack-access");
                 }
             }
             else
-                Terminal::kprintf("not present ");
+                Terminal::safe::print("not present ");
 
-            Terminal::kprintf(") at %x\n", address);
+            Terminal::safe::print(") at ");
+            Terminal::safe::printHex(address);
+            Terminal::safe::print("\n");
+            dump(state);
             panic("Page fault");
         }
 
@@ -143,7 +188,7 @@ namespace Interrupts
             addEntry(12, _12);
             addEntry(13, _13);
             addEntry(14, _14);
-        } 
+        }
     } // namespace Exceptions
 
 } // namespace Interrupts

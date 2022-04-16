@@ -69,7 +69,9 @@ namespace Devices
                 return false;
             }
 
-            if (Scheduler::getCurrentCPU()->lApicAddress == 0)
+            Scheduler::CPU *cpu = Scheduler::getCurrentCPU();
+            assert(cpu);
+            if (cpu->lApicAddress == 0)
             {
                 enable = 0;
                 return false;
@@ -80,18 +82,21 @@ namespace Devices
 
         void init()
         {
+            assert(Scheduler::getCurrentCPU());
             writeLAPIC(Scheduler::getCurrentCPU()->lApicAddress, REG_SPURIOUS, 0xFF | 0x100);
         }
 
         void sendEOI()
         {
+            assert(Scheduler::getCurrentCPU());
             writeLAPIC(Scheduler::getCurrentCPU()->lApicAddress, REG_EOI, 0);
         }
 
         void calibrateTimer()
         {
+            assert(Scheduler::getCurrentCPU());
             uint64 base = Scheduler::getCurrentCPU()->lApicAddress;
-            writeLAPIC(base, REG_TIMER_DIVISOR, 0b1011); // divise by 1
+            writeLAPIC(base, REG_TIMER_DIVISOR, 0b1011); // divide by 1
             writeLAPIC(base, REG_TIMER_INITIAL, 0xFFFFFFFF);
             PIT::delay(10);
             uint64 readValue = readLAPIC(base, REG_TIMER_CURRENT);
@@ -103,6 +108,7 @@ namespace Devices
         void initTimer(uint8 vector, TimerMode mode, uint64 ns)
         {
             assert(tickFems);
+            assert(Scheduler::getCurrentCPU());
             uint64 base = Scheduler::getCurrentCPU()->lApicAddress;
             writeLAPIC(base, REG_LVT_TIMER, vector | (((uint8)mode & 3) << 17));
 

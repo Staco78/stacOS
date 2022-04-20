@@ -43,58 +43,71 @@ namespace Interrupts
 #undef print
         }
 
-        void _0()
+        void _0(InterruptState *state)
         {
+            dump(state);
             panic("Divide by zero");
         }
-        void _1()
+        void _1(InterruptState *state)
         {
+            dump(state);
             panic("Debug");
         }
-        void _2()
+        void _2(InterruptState *state)
         {
+            dump(state);
             panic("Non-maskable Interrupt");
         }
-        void _3()
+        void _3(InterruptState *state)
         {
+            dump(state);
             panic("Breakpoint");
         }
-        void _4()
+        void _4(InterruptState *state)
         {
+            dump(state);
             panic("Overflow");
         }
 
-        void _5()
+        void _5(InterruptState *state)
         {
+            dump(state);
             panic("Bound Range Exceeded");
         }
 
-        void _6()
+        void _6(InterruptState *state)
         {
+            dump(state);
             panic("Invalid Opcode");
         }
-        void _7()
+        void _7(InterruptState *state)
         {
+            dump(state);
             panic("Device not Available");
         }
-        void _8()
+        void _8(InterruptState *state)
         {
+            dump(state);
             panic("Double Fault");
         }
-        void _9()
+        void _9(InterruptState *state)
         {
+            dump(state);
             panic("Coprocessor Segment Overrun");
         }
-        void _10()
+        void _10(InterruptState *state)
         {
+            dump(state);
             panic("Invalid TSS");
         }
-        void _11()
+        void _11(InterruptState *state)
         {
+            dump(state);
             panic("Segment Not Present");
         }
-        void _12()
+        void _12(InterruptState *state)
         {
+            dump(state);
             panic("Stack-Segment Fault");
         }
         void _13(InterruptState *state)
@@ -121,6 +134,7 @@ namespace Interrupts
             Terminal::safe::print("Index: ");
             Terminal::safe::printInt((uint16)(state->err >> 3));
             Terminal::safe::print("\n");
+            dump(state);
             panic("General Protection Fault");
         }
 

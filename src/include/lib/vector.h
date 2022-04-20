@@ -110,4 +110,19 @@ public:
         }
         return nullptr;
     }
+
+    void remove(const T &value)
+    {
+        uint i = 0;
+        while (i < size())
+        {
+            if (_data[i] == value)
+            {
+                memmove(&_data[i], &_data[i + 1], sizeof(T) * (size() - i - 1));
+                _size--;
+            }
+            else
+                i++;
+        }
+    }
 };

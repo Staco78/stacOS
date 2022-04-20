@@ -22,10 +22,7 @@ public:
 
     inline bool tryLock()
     {
-        if (_lock)
-            return false;
-        lock();
-        return true;
+        return __sync_bool_compare_and_swap(&_lock, 0, 1);
     }
 
 private:

@@ -10,17 +10,20 @@
 #include <fs/fs.h>
 #include <symbols.h>
 #include <modules.h>
+#include <syscalls.h>
 
 void kernelSchedulerMain()
 {
+    initSyscalls();
     KernelSymbols::install();
     Modules::init();
 
     Modules::loadModule((fs::FileNode *)fs::resolvePath("/initrd/ps2.ko"));
 
     Scheduler::loadProcess("/initrd/app");
+    Scheduler::loadProcess("/initrd/app");
 
-    Scheduler::switchNext();
+    Scheduler::exit(0);
 }
 
 extern "C" void kernelMain(void *multiboot_struct, uint64 cr3)

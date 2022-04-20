@@ -17,8 +17,8 @@ namespace gdt
 
     void install()
     {
-        SegmentDescriptor *gdt = (SegmentDescriptor *)kmalloc(5 * sizeof(SegmentDescriptor) + sizeof(LongSegmentDescriptor));
-        memset(gdt, 0, 5 * sizeof(SegmentDescriptor) + sizeof(LongSegmentDescriptor));
+        SegmentDescriptor *gdt = (SegmentDescriptor *)kmalloc(6 * sizeof(SegmentDescriptor) + sizeof(LongSegmentDescriptor));
+        memset(gdt, 0, 6 * sizeof(SegmentDescriptor) + sizeof(LongSegmentDescriptor));
 
         gdt[1].limitLow = 0xFFFF;
         gdt[1].accessByte = PRESENT | NOT_SYS | EXEC | RW;
@@ -30,20 +30,22 @@ namespace gdt
         gdt[2].flags = GRAN | SIZE;
         gdt[2].limitHigh = 0xF;
 
-        gdt[3].limitLow = 0xFFFF;
-        gdt[3].accessByte = PRESENT | NOT_SYS | EXEC | RW | 0b01100000; // DPL 3
-        gdt[3].flags = GRAN | LONG;
-        gdt[3].limitHigh = 0xF;
+        // null descriptor here
 
         gdt[4].limitLow = 0xFFFF;
         gdt[4].accessByte = PRESENT | NOT_SYS | RW | 0b01100000; // DPL 3
         gdt[4].flags = GRAN | SIZE;
         gdt[4].limitHigh = 0xF;
 
+        gdt[5].limitLow = 0xFFFF;
+        gdt[5].accessByte = PRESENT | NOT_SYS | EXEC | RW | 0b01100000; // DPL 3
+        gdt[5].flags = GRAN | LONG;
+        gdt[5].limitHigh = 0xF;
+
         Scheduler::CPU *cpu = Scheduler::getCurrentCPU();
         assert(cpu);
 
-        LongSegmentDescriptor *tss = (LongSegmentDescriptor *)&gdt[5];
+        LongSegmentDescriptor *tss = (LongSegmentDescriptor *)&gdt[6];
         tss->limitLow = sizeof(TSS);
         uint64 TSSAddress = (uint64)&cpu->TSS;
         tss->baseLow = (uint16)TSSAddress;
@@ -54,9 +56,9 @@ namespace gdt
         tss->flags = LONG;
 
         cpu->gdt.base = (uint64)gdt;
-        cpu->gdt.limit = 5 * sizeof(SegmentDescriptor) + sizeof(LongSegmentDescriptor) - 1;
+        cpu->gdt.limit = 6 * sizeof(SegmentDescriptor) + sizeof(LongSegmentDescriptor) - 1;
         __asm__ volatile("lgdt (%%rax)" ::"a"(&cpu->gdt));
-        __asm__ volatile("mov $(5 * 8), %ax\n"
+        __asm__ volatile("mov $(6 * 8), %ax\n"
                          "ltr %ax");
 
         cpu->TSS.IST1 = (uint64)kmalloc(4096);

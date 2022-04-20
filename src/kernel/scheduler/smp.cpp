@@ -5,6 +5,7 @@
 #include <interrupts.h>
 #include <lib/mem.h>
 #include <debug.h>
+#include <syscalls.h>
 
 extern "C" void *apBootStart;
 extern "C" void *apBootEnd;
@@ -25,9 +26,9 @@ namespace Scheduler
         Scheduler::init();
         gdt::install();
         Interrupts::IDT::initAp();
-        Devices::LAPIC::init();
-        Interrupts::enable();
-
+        Interrupts::init();
+        Devices::LAPIC::calibrateTimer();
+        initSyscalls();
         started = true;
 
         Scheduler::start();

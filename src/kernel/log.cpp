@@ -63,4 +63,54 @@ namespace Log
     {
         Serial::print(str);
     }
+
+    namespace safe
+    {
+        void print(const char *str)
+        {
+            while (*str)
+                Serial::print(*(str++));
+        }
+
+        void println(const char *str)
+        {
+            print(str);
+            Serial::print('\n');
+        }
+
+        void _printHex(uint64 value)
+        {
+            if (value < 16)
+            {
+                if (value < 10)
+                    Serial::print(48 + value);
+                else
+                    Serial::print(55 + value);
+                return;
+            }
+            _printHex(value / 16);
+            if (value % 16 < 10)
+                Serial::print(48 + (value % 16));
+            else
+                Serial::print(55 + (value % 16));
+        }
+
+        void printHex(uint64 value)
+        {
+            print("0x");
+            _printHex(value);
+        }
+
+        void printInt(uint64 value)
+        {
+            if (value < 10)
+            {
+                Serial::print(48 + value);
+                return;
+            }
+            printInt(value / 10);
+            Serial::print(48 + (value % 10));
+        }
+    }
+
 } // namespace Log

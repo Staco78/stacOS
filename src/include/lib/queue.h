@@ -72,4 +72,17 @@ public:
     {
         return _size == 0;
     }
+
+    void replaceAll(const T &value, const T &by)
+    {
+        uint i = lastRead;
+        while (i != lastWritten)
+        {
+            if (i == dataSize)
+                i = 0;
+            if (_data[i] == value)
+                _data[i] = by;
+            i++;
+        }
+    }
 };

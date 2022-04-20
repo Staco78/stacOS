@@ -1,5 +1,6 @@
 #pragma once
 #include <types.h>
+#include <stddef.h>
 
 namespace gdt
 {
@@ -47,6 +48,8 @@ namespace gdt
         uint16 reserved3;
         uint16 IOPB;
     } __attribute__((packed));
+
+    static_assert(offsetof(TSS, RSP0) == 4);
 
     void install();
 

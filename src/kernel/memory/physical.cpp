@@ -2,6 +2,7 @@
 #include <terminal.h>
 #include <lib/mem.h>
 #include <debug.h>
+#include <lib/lockGuard.h>
 
 using namespace MultibootInformations;
 
@@ -97,8 +98,10 @@ namespace Memory
             return (bool)(bitmap[index / 8] & (0b10000000 >> (index % 8)));
         }
 
-        uint64 findFreePages(uint64 count, uint64 alignment)
+        uint64 findFreePages(uint64 count, uint64 alignment, bool _lock)
         {
+            if (_lock)
+                lock.lock();
             assert(count > 0);
             uint64 index;
             uint64 size = 0;
@@ -115,7 +118,11 @@ namespace Memory
                     }
                     size++;
                     if (size == count)
+                    {
+                        if (_lock)
+                            lock.unlock();
                         return index * 4096;
+                    }
                 }
                 else
                     size = 0;
@@ -126,8 +133,10 @@ namespace Memory
 
         uint64 getFreePages(uint64 count, uint64 alignment)
         {
-            uint64 pages = findFreePages(count, alignment);
+            lock.lock();
+            uint64 pages = findFreePages(count, alignment, false);
             setUsed(pages / 4096, count);
+            lock.unlock();
             return pages;
         }
 

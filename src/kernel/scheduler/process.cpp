@@ -18,6 +18,7 @@ namespace Scheduler
         process->name = name;
         process->id = getNextProcessId();
         process->addressSpace = Memory::Virtual::createAddressSpace();
+        Log::info("Create process %i", process->id);
         return process;
     }
 
@@ -35,11 +36,21 @@ namespace Scheduler
 
         Thread *thread = createThread(process);
         assert(thread);
-        process->threads.push(thread);
-        getCurrentCPU()->threads.lock();
-        getCurrentCPU()->threads.push(thread);
-        getCurrentCPU()->threads.unlock();
+        addThread(thread);
 
         return process;
     }
+
+    void destroyProcess(Process *process)
+    {
+        assert(process);
+        CPU *cpu = getCurrentCPU();
+        assert(process != cpu->currentProcess);
+        assert(process->threads.empty());
+
+        Memory::Virtual::destroyAddressSpace(&process->addressSpace);
+
+        Log::info("Scheduler: destroyed process %i", process->id);
+    }
+
 } // namespace Scheduler

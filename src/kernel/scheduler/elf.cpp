@@ -207,6 +207,8 @@ namespace ELF
     void loadExecutable(Scheduler::Process *process, fs::FileNode *file)
     {
         assert(file);
+        assert(process);
+        Log::info("Load executable %S into process %i", &file->name, process->id);
         Elf64_Header header;
         file->read(0, sizeof(Elf64_Header), &header);
 

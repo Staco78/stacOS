@@ -44,6 +44,7 @@ namespace fs
                 m_header = header;
                 m_start = (void *)(((uint64)m_header | 0x1FF) + 1);
                 m_size = getsize(header->size);
+                name = header->filename;
             }
 
             int64 read(uint64 offset, uint64 size, void *buffer)

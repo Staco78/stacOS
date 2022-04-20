@@ -12,19 +12,16 @@ namespace Memory
 {
     namespace Physical
     {
-        extern Spinlock lock;
         void init(MultibootInformations::MultibootInfo *multibootStruct);
         void setUsed(uint64 index, uint64 length = 1);
         void setFree(uint64 index, uint64 length = 1);
-        uint64 findFreePages(uint64 count = 1, uint64 alignment = 4096);
+        uint64 findFreePages(uint64 count = 1, uint64 alignment = 4096, bool _lock = true);
         uint64 getFreePages(uint64 count = 1, uint64 alignment = 4096);
         void freePages(uint64 address, uint64 count = 1);
     } // namespace Physical
 
     namespace Virtual
     {
-        extern Spinlock lock;
-
         union PML
         {
             struct
@@ -66,17 +63,19 @@ namespace Memory
         {
             uint64 cr3;
             inline constexpr PML *pml4() { return (PML *)getKernelVirtualAddress(cr3); }
+            Spinlock lock;
         };
 
         constexpr inline uint64 makeCanonical(uint64 address)
         {
             return address & 1UL << 47 ? address | 0xFFFF000000000000 : address & 0xFFFFFFFFFFFF;
         }
-        void mapPage(uint64 physicalAddress, uint64 virtualAddress, uint64 flags, AddressSpace *addressSpace = nullptr);
-        void unmapPage(uint64 virtualAddress);
-        uint64 findFreePages(uint64 size = 1, bool user = false);
+        void mapPage(uint64 physicalAddress, uint64 virtualAddress, uint64 flags, AddressSpace *addressSpace = nullptr, bool lock = true);
+        uint64 unmapPage(uint64 virtualAddress, AddressSpace* addressSpace = nullptr);
+        uint64 findFreePages(uint64 size = 1, bool user = false, bool lock = true);
         void *allocModuleSpace(uint64 size);
         AddressSpace createAddressSpace();
+        void destroyAddressSpace(AddressSpace *space);
     } // namespace Virtual
 
     namespace Heap
@@ -91,7 +90,9 @@ namespace Memory
     }
 
     uint64 getFreePages(uint64 size = 1, uint64 flags = Virtual::WRITE, Virtual::AddressSpace *addressSpace = nullptr);
-
     // size in pages
     uint64 allocSpace(uint64 virtualAddress, uint size, uint64 flags = Virtual::WRITE, Virtual::AddressSpace *addressSpace = nullptr);
+    void releasePages(uint64 address, uint size, Virtual::AddressSpace *addressSpace = nullptr);
+
+    bool checkAccess(uint64 address, uint64 size, bool write = false, Virtual::AddressSpace *addressSpace = nullptr);
 } // namespace Memory

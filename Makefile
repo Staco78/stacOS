@@ -2,7 +2,7 @@ GCC=x86_64-elf-gcc
 LD=x86_64-elf-ld
 
 C_FLAGS=-ffreestanding -Wall -mcmodel=kernel -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -Isrc/include -lgcc -g
-GCC_FLAGS=$(C_FLAGS) -fpermissive -fno-exceptions -fno-rtti
+GCC_FLAGS=$(C_FLAGS) -fpermissive -fno-exceptions -fno-rtti -Wno-invalid-offsetof
 LD_FLAGS=-z max-page-size=0x1000 -nostdlib -g
 
 KERNEL_C_SCRS=$(shell find ./src/kernel/ -name "*.c")
@@ -13,14 +13,14 @@ KERNEL_OBJS=$(KERNEL_ASM_SCRS:.asm=.o) $(KERNEL_CPP_SCRS:.cpp=.o) ${KERNEL_C_SCR
 MODULES_SRCS=$(shell find ./src/modules/ -type d -not -path "./src/modules/")
 MODULES=$(shell find ./src/modules/ -type d -not -path "./src/modules/" | cut -d/ -f4 | awk '$$0="initrd/"$$0".ko"')
 
-QEMU_FLAGS=-cdrom myos.iso -smp 4 -cpu max,+pdpe1gb -m 32 -no-reboot -no-shutdown 
+QEMU_FLAGS=-cdrom myos.iso -smp 4 -cpu max,+pdpe1gb -m 32 -no-reboot -no-shutdown
 
 all: qemu
 
 build: myos.iso
 
 qemu: myos.iso
-	qemu-system-x86_64 $(QEMU_FLAGS) -serial stdio
+	qemu-system-x86_64 $(QEMU_FLAGS) -serial stdio -serial file:log
 
 debug: myos.iso
 	qemu-system-x86_64 -s -S -boot d $(QEMU_FLAGS) -serial file:log -monitor stdio
@@ -45,6 +45,10 @@ dir:
 	mkdir -p iso/boot/grub
 	mkdir -p initrd
 
+app: dir
+	nasm -felf64 apps/app.asm -o apps/app.o
+	ld -melf_x86_64 -o initrd/app apps/app.o
+
 %.o: %.cpp
 	$(GCC) -c $< -o $@ $(GCC_FLAGS)
 
@@ -62,7 +66,7 @@ initrd/symbols: myos.bin
 	$(shell bash -c "nm -g $< | ./scripts/createSymbols.sh")
 
 
-initrd.tar: $(MODULES) initrd/symbols
+initrd.tar: $(MODULES) initrd/symbols app
 	@echo creating initrd...
 	$(shell cd initrd && tar -cf ../initrd.tar * -H posix && cd ..)
 

@@ -10,10 +10,34 @@ namespace Scheduler
     extern "C" __attribute__((noreturn)) void doSwitch(uint64 rsp, uint64 cr3);
     extern "C" void idleTask();
     extern "C" void _schedulerTickHandler();
+    extern "C" void _schedulerYieldHandler();
 
     SchedulerState schedulerState;
     Vector<CPU *> processors;
     Process kernelProcess;
+
+    Thread killedThread = {.process = &kernelProcess, .id = 0, .kernelStack = 0, .state = ThreadState::Killed};
+
+    void threadDestroyerOfThreads()
+    {
+        CPU *cpu = getCurrentCPU();
+
+        while (true)
+        {
+            while (!cpu->threadsToDestroy.empty())
+            {
+                Thread *thread = cpu->threadsToDestroy.pop();
+                assert(thread->state == ThreadState::Killed);
+                cpu->threads.lock();
+                cpu->threads.replaceAll(thread, &killedThread);
+                cpu->threads.unlock();
+
+                destroyThread(thread);
+            }
+
+            yield();
+        }
+    }
 
     void registerCPU(bool bsp, uint64 lApicAddress, uint8 ID, uint8 lApicID)
     {
@@ -75,9 +99,16 @@ namespace Scheduler
         new (&cpu->threads) Synchronized<Queue<Thread *>>();
         cpu->threads.realloc(1024);
 
+        new (&cpu->threadsToDestroy) Synchronized<Queue<Thread *>>();
+        cpu->threadsToDestroy.realloc(512);
+
         cpu->idleThread = createThread(&kernelProcess, (uint64)idleTask, false);
-        cpu->idleThread->id = 0;
         cpu->currentThread = cpu->idleThread;
+
+        cpu->threads.push(createThread(&kernelProcess, (uint64)threadDestroyerOfThreads, false));
+
+        if (cpu->isBsp)
+            Interrupts::IDT::setEntry(0xF0, _schedulerYieldHandler);
     }
 
     extern "C" __attribute__((noreturn)) void schedulerTickHandler(uint64 rsp)
@@ -86,6 +117,23 @@ namespace Scheduler
         CPU *cpu = getCurrentCPU();
         cpu->lockLevel = 1;
         assert(cpu->currentThread);
+        assert(cpu->currentThread->state == ThreadState::Running);
+        cpu->currentThread->state = ThreadState::Stopped;
+        cpu->currentThread->kernelStack = rsp;
+        cpu->threads.lock();
+        cpu->threads.push(cpu->currentThread);
+        cpu->threads.unlock();
+        switchNext();
+    }
+
+    extern "C" __attribute__((noreturn)) void schedulerYieldHandler(uint64 rsp)
+    {
+        CPU *cpu = getCurrentCPU();
+        cpu->lockLevel = 1;
+        assert(cpu->currentThread);
+        assert(cpu->currentThread->state == ThreadState::Running);
+        cpu->currentThread->state = ThreadState::Stopped;
+        cpu->currentThread->kernelStack = rsp;
         cpu->threads.lock();
         cpu->threads.push(cpu->currentThread);
         cpu->threads.unlock();
@@ -151,7 +199,13 @@ namespace Scheduler
 
     __attribute__((noreturn)) void switchNext()
     {
+        __asm__("cli");
         CPU *cpu = getCurrentCPU();
+        cpu->lockLevel = 1;
+
+        assert(cpu->currentThread);
+        if (cpu->currentThread->state == ThreadState::Running)
+            cpu->currentThread->state = ThreadState::Stopped;
 
         Thread *thread = nullptr;
         cpu->threads.lock();
@@ -167,24 +221,46 @@ namespace Scheduler
 
                 if (_cpu->threads.tryLock())
                 {
-                    thread = _cpu->threads.pop();
+                    while (!_cpu->threads.empty() && !thread)
+                    {
+                        thread = _cpu->threads.pop();
+                        assert(thread);
+                        if (thread->state != ThreadState::Stopped)
+                        {
+                            if (thread->state != ThreadState::Killed)
+                                _cpu->threads.push(thread);
+                            thread = nullptr;
+                        }
+                    }
                     _cpu->threads.unlock();
+
+                    if (thread)
+                        break;
                 }
-            }
-            if (thread == nullptr)
-            {
-                cpu->threads.unlock();
-                assert(cpu->idleThread);
-                switchTo(cpu->idleThread);
             }
         }
         else
         {
-            thread = cpu->threads.pop();
-            assert(thread);
+            while (!cpu->threads.empty() && !thread)
+            {
+                thread = cpu->threads.pop();
+                assert(thread);
+                if (thread->state != ThreadState::Stopped)
+                {
+                    if (thread->state != ThreadState::Killed)
+                        cpu->threads.push(thread);
+                    thread = nullptr;
+                }
+            }
         }
 
         cpu->threads.unlock();
+
+        if (thread == nullptr)
+        {
+            assert(cpu->idleThread);
+            switchTo(cpu->idleThread);
+        }
 
         static uint32 balanceTick = 0;
         static Spinlock lock;
@@ -211,6 +287,11 @@ namespace Scheduler
         cpu->currentThread = thread;
         uint64 cr3 = thread->process == cpu->currentProcess ? 0 : thread->process->addressSpace.cr3;
         cpu->currentProcess = thread->process;
+
+        assert(cpu->currentThread->state == ThreadState::Stopped);
+        cpu->currentThread->state = ThreadState::Running;
+        cpu->lockLevel = 0;
+
         doSwitch(thread->kernelStack, cr3);
     }
 

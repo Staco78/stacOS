@@ -6,6 +6,7 @@
 #include <synchronization/spinlock.h>
 #include <log.h>
 #include <debug.h>
+#include <scheduler.h>
 
 namespace Memory
 {
@@ -61,7 +62,7 @@ extern "C" void *liballoc_alloc(size_t size)
                 for (; y < size; y++)
                 {
                     physicalPages[i - y] = Physical::getFreePages();
-                    Virtual::mapPage(physicalPages[i - y], heapAddress + (i - y) * 4096, 2);
+                    Virtual::mapPage(physicalPages[i - y], heapAddress + (i - y) * 4096, 2, &Scheduler::getKernelProcess()->addressSpace);
                 }
                 return (void *)(heapAddress + (i - --y) * 4096);
             }
@@ -78,7 +79,7 @@ extern "C" int liballoc_free(void *ptr, size_t size)
     for (size_t i = baseIndex; i < size + baseIndex; i++)
     {
         Physical::freePages(physicalPages[i]);
-        Virtual::unmapPage(heapAddress + i * 4096);
+        Virtual::unmapPage(heapAddress + i * 4096, &Scheduler::getKernelProcess()->addressSpace);
         physicalPages[i] = 0;
     }
     return 0;

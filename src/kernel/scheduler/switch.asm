@@ -13,15 +13,22 @@ jmp _
 
 global _schedulerTickHandler
 _schedulerTickHandler:
-cli
-swapgs_if_necessary
-sub rsp, 8
-push_all_regs
-mov rdi, rsp
-extern schedulerTickHandler
-call schedulerTickHandler
+    cli
+    swapgs_if_necessary
+    sub rsp, 8
+    push_all_regs
+    mov rdi, rsp
+    extern schedulerTickHandler
+    call schedulerTickHandler
 
-
+global _schedulerYieldHandler
+_schedulerYieldHandler:
+    cli
+    sub rsp, 8
+    push_all_regs
+    mov  rdi, rsp
+    extern schedulerYieldHandler
+    call schedulerYieldHandler
 
 ; rdi = rsp, rsi = cr3
 global doSwitch

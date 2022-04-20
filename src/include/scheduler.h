@@ -19,6 +19,7 @@ namespace Scheduler
     {
         const char *name;
         pid id;
+        tid threadIdCounter = 0;
 
         uint64 entryPoint;
 
@@ -27,31 +28,47 @@ namespace Scheduler
         Vector<Thread *> threads;
     };
 
+    enum class ThreadState
+    {
+        Stopped = 1,
+        Running,
+        Killed,
+    };
+
     struct Thread
     {
         Process *process;
         tid id;
 
         uint64 kernelStack;
+        uint64 kernelStackBase; // doesn't change: only for freeing
+        uint64 userStackBase;   // same
+
+        ThreadState state;
     };
 
     struct CPU
     {
         CPU *cpu;
+        uint64 temp; // used for syscall entry
+        uint lockLevel = 1;
+        gdt::TSS TSS;
         uint64 lApicAddress;
         uint8 ID;
         uint8 lApicID;
         bool isBsp;
 
-        uint lockLevel = 1;
-
         gdt::GdtPtr gdt;
-        gdt::TSS TSS;
         Synchronized<Queue<Thread *>> threads;
+        Synchronized<Queue<Thread *>> threadsToDestroy;
         Thread *idleThread;
         Thread *currentThread;
         Process *currentProcess;
     };
+
+    static_assert(offsetof(CPU, temp) == 8);
+    static_assert(offsetof(CPU, lockLevel) == 16);
+    static_assert(offsetof(CPU, TSS) == 20);
 
     enum SchedulerState
     {
@@ -79,12 +96,19 @@ namespace Scheduler
     __attribute__((noreturn)) void start();
     void switchNext();
     void switchTo(Thread *thread);
+    inline void yield()
+    {
+        __asm__ volatile("int $0xF0");
+    }
 
     Thread *createThread(Process *process, uint64 entry = 0, bool userThread = true);
     void addThread(Thread *thread);
+    void destroyThread(Thread *thread);
+    __attribute__((noreturn)) void exit(int status);
 
     Process *createProcess(const char *name);
     Process *loadProcess(const char *path);
+    void destroyProcess(Process *process);
 
 } // namespace Scheduler
 

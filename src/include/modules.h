@@ -12,5 +12,5 @@ namespace Modules
     };
 
     void init();
-    bool loadModule(fs::FileNode *file);
+    bool loadModule(fs::Node *file);
 } // namespace Modules

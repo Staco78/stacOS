@@ -6,8 +6,8 @@
 namespace Scheduler
 {
 
-    static constexpr uint64 KERNEL_STACK_SIZE = 0x1000;
-    static constexpr uint64 USER_STACK_SIZE = 0x2000;
+    static constexpr uint64 KERNEL_STACK_SIZE = 0x1000; // 4 ko
+    static constexpr uint64 USER_STACK_SIZE = 0x10000; // 64 ko
 
     static_assert(KERNEL_STACK_SIZE % 4096 == 0);
     static_assert(USER_STACK_SIZE % 4096 == 0);
@@ -18,8 +18,10 @@ namespace Scheduler
         thread->process = process;
         thread->id = process->threadIdCounter++;
 
-        uint64 kernelVirtualStackAddress = Memory::getFreePages(KERNEL_STACK_SIZE / 4096, Memory::Virtual::WRITE, &process->addressSpace);
-        thread->kernelStack = kernelVirtualStackAddress + KERNEL_STACK_SIZE - sizeof(Interrupts::InterruptState);
+        uint64 kernelStackSize = userThread ? KERNEL_STACK_SIZE : USER_STACK_SIZE;
+
+        uint64 kernelVirtualStackAddress = Memory::getFreePages(kernelStackSize / 4096, Memory::Virtual::WRITE, &process->addressSpace);
+        thread->kernelStack = kernelVirtualStackAddress + kernelStackSize - sizeof(Interrupts::InterruptState);
         thread->kernelStackBase = kernelVirtualStackAddress;
 
         Interrupts::InterruptState *state = (Interrupts::InterruptState *)thread->kernelStack;
@@ -63,9 +65,9 @@ namespace Scheduler
 
     void exit(int status)
     {
-        Interrupts::disable();
         CPU *cpu = Scheduler::getCurrentCPU();
 
+        Interrupts::disable();
         cpu->currentThread->state = ThreadState::Killed;
         cpu->threadsToDestroy.lock();
         cpu->threadsToDestroy.push(cpu->currentThread);

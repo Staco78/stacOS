@@ -15,6 +15,12 @@ namespace Scheduler
 
     struct Thread;
 
+    struct FdEntry
+    {
+        fs::Node *node;
+        uint mode;
+    };
+
     struct Process
     {
         const char *name;
@@ -26,6 +32,9 @@ namespace Scheduler
         Memory::Virtual::AddressSpace addressSpace;
 
         Vector<Thread *> threads;
+
+        uint allocateFdEntry();
+        Vector<FdEntry> fds = Vector<FdEntry>(10);
     };
 
     enum class ThreadState
@@ -114,5 +123,5 @@ namespace Scheduler
 
 namespace ELF
 {
-    void loadExecutable(Scheduler::Process *process, fs::FileNode *file);
+    void loadExecutable(Scheduler::Process *process, fs::Node *file);
 }

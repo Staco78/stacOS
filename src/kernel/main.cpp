@@ -14,14 +14,27 @@
 
 void kernelSchedulerMain()
 {
-    initSyscalls();
+    fs::init();
+    fs::Initrd::init();
+    fs::DeviceManager::init();
     KernelSymbols::install();
     Modules::init();
+    initSyscalls();
 
-    Modules::loadModule((fs::FileNode *)fs::resolvePath("/initrd/ps2.ko"));
+    Modules::loadModule(({fs::Node* node; assert(fs::resolvePath("/initrd/ps2.ko", node)>=0); node; }));
+    Modules::loadModule(({fs::Node* node; assert(fs::resolvePath("/initrd/ext2.ko", node)>=0); node; }));
 
+    fs::mount("/", ({fs::Node* node; assert(fs::resolvePath("/initrd/ext2.bin", node)>=0); node; }));
+
+    // Scheduler::loadProcess("/initrd/app");
     Scheduler::loadProcess("/initrd/app");
-    Scheduler::loadProcess("/initrd/app");
+
+    // uint8 buffer[128];
+    // fs::Node *node;
+    // fs::resolvePath("/file", node);
+    // node->read(0, 128, buffer);
+
+    // Terminal::kprintf("%s", buffer);
 
     Scheduler::exit(0);
 }
@@ -42,8 +55,6 @@ extern "C" void kernelMain(void *multiboot_struct, uint64 cr3)
     Interrupts::init();
 
     Devices::LAPIC::calibrateTimer();
-
-    fs::Initrd::init();
 
     Scheduler::init();
     Scheduler::startSMP();

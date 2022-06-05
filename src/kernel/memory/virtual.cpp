@@ -324,7 +324,7 @@ namespace Memory
             PML *pml2Entry = &((PML *)getKernelVirtualAddress(UNSHIFT(pml3Entry->bits.address)))[pml2Index];
             if (!pml2Entry->bits.present)
                 return nullptr;
-            if (pml2Entry->bits.present)
+            if (pml2Entry->bits.size)
                 return nullptr;
 
             return &((PML *)getKernelVirtualAddress(UNSHIFT(pml2Entry->bits.address)))[TDIndex];
@@ -391,7 +391,7 @@ namespace Memory
         uint pageBase = SHIFT(address);
         uint pageEnd = SHIFT(end);
 
-        for (uint i = pageBase; i < pageEnd; i++)
+        for (uint i = pageBase; i <= pageEnd; i++)
         {
             Virtual::PML *page = Virtual::getPage(UNSHIFT(i), addressSpace);
             if (!page)
@@ -403,6 +403,43 @@ namespace Memory
         }
 
         return true;
+    }
+
+    bool checkStrAccess(const char *str, Virtual::AddressSpace *addressSpace)
+    {
+
+        if (!addressSpace)
+            addressSpace = &Scheduler::getCurrentProcess()->addressSpace;
+
+        if (!str)
+            return false;
+
+        const char *current = str;
+
+        while (true)
+        {
+            if (checkAccess((uint64)current, 10, false, addressSpace))
+            {
+                for (uint i = 0; i < 10; i++)
+                {
+                    if (!current[i])
+                        return true;
+                }
+
+                current += 10;
+            }
+            else
+            {
+                for (uint i = 0; i < 10; i++)
+                {
+                    if (!checkAccess((uint64)(current + i), 1, false, addressSpace))
+                        return false;
+                    if (current[i] == 0)
+                        return true;
+                }
+                assert(false);
+            }
+        }
     }
 
 } // namespace Memory

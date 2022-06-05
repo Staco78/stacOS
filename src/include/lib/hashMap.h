@@ -6,15 +6,13 @@
 #include <lib/string.h>
 #include <terminal.h>
 
-template <typename T, typename K>
+template <typename K, typename T>
 class HashMap
 {
 protected:
     static constexpr uint defaultSize = 10;
 
 private:
-    typedef uint (*Hash)(const K &);
-
     struct Node
     {
         K key;
@@ -35,20 +33,16 @@ private:
         }
     }
 
-    Hash hash = nullptr;
-
 public:
-    HashMap(Hash hashFunc)
+    HashMap()
     {
         m_size = defaultSize;
-        hash = hashFunc;
         allocIfNecessary();
     }
 
-    HashMap(uint size, Hash hashFunc)
+    HashMap(uint size)
     {
         m_size = size;
-        hash = hashFunc;
         allocIfNecessary();
     }
 
@@ -60,7 +54,6 @@ public:
 
     T *get(const K &key)
     {
-        assert(hash);
         allocIfNecessary();
         uint i = hash(key) % m_size;
         if (entries[i].size() == 0)
@@ -79,17 +72,16 @@ public:
         return nullptr;
     }
 
-    void set(const K &key, const T &value)
+    T *set(const K &key, const T &value)
     {
-        assert(hash);
         allocIfNecessary();
         uint i = hash(key) % m_size;
         entries[i].push({.key = key, .data = value});
+        return &entries[i][entries[i].size() - 1]->data;
     }
 
     void remove(const K &key)
     {
-        assert(hash);
         allocIfNecessary();
         uint i = hash(key) % m_size;
         assert(entries[i].size() > 0);
@@ -110,16 +102,19 @@ public:
             assert(false);
         }
     }
-};
 
-uint stringHash(const String &key);
-
-template <typename T>
-class StringHashMap : public HashMap<T, String>
-{
-
-public:
-    StringHashMap(uint size = HashMap<T, String>::defaultSize) : HashMap<T, String>::HashMap(size, &stringHash)
+    uint hash(const String &key)
     {
+        unsigned int hash = 0;
+        for (uint i = 0; i < key.size(); i++)
+        {
+            hash = key[i] + (hash << 6) + (hash << 16) - hash;
+        }
+        return hash;
+    }
+
+    uint hash(const uint32 &key)
+    {
+        return key;
     }
 };

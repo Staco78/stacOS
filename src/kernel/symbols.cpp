@@ -6,20 +6,19 @@
 namespace KernelSymbols
 {
 
-    StringHashMap<uint64> map;
+    HashMap<String, uint64> map;
 
     void install()
     {
-        fs::Node *node = fs::resolvePath("/initrd/symbols");
-        assert(node);
-        assert(node->isFile());
-        fs::FileNode *file = (fs::FileNode *)node;
-        uint64 size = file->getSize();
+        fs::Node *file;
+        assert(fs::resolvePath("/initrd/symbols", file) >= 0);
+        assert(file);
+        uint64 size = file->size();
         char *buf = (char *)kmalloc(size);
         assert(buf);
-        file->read(0, size, buf);
+        assert(file->read(0, size, buf) > 0);
 
-        new (&map) StringHashMap<uint64>(*(uint32 *)buf);
+        new (&map) HashMap<String, uint64>(*(uint32 *)buf);
 
         uint i = 4;
         while (i < size)
@@ -36,6 +35,11 @@ namespace KernelSymbols
     uint64 get(const String &name)
     {
         uint64 *value = map.get(name);
+        if (!value)
+        {
+            Log::warn("Symbol %s not found", name.c_str());
+            return 0;
+        }
         assert(value);
         return *value;
     }

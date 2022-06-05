@@ -125,4 +125,10 @@ public:
                 i++;
         }
     }
+
+    // set all to 0
+    inline void clear()
+    {
+        memset(_data, 0, dataSize);
+    }
 };

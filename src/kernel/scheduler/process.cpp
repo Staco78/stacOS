@@ -18,16 +18,19 @@ namespace Scheduler
         process->name = name;
         process->id = getNextProcessId();
         process->addressSpace = Memory::Virtual::createAddressSpace();
+        process->threads.clear();
+        process->fds.clear();
+
         Log::info("Create process %i", process->id);
         return process;
     }
 
     Process *loadProcess(const char *path)
     {
-        fs::Node *node = fs::resolvePath(path);
-        assert(node);
-        assert(node->isFile());
-        fs::FileNode *file = (fs::FileNode *)node;
+        fs::Node *file;
+        assert(fs::resolvePath(path, file) >= 0);
+        assert(file);
+        assert(file->type & fs::FILE);
 
         Process *process = createProcess(path);
         ELF::loadExecutable(process, file);
@@ -51,6 +54,18 @@ namespace Scheduler
         Memory::Virtual::destroyAddressSpace(&process->addressSpace);
 
         Log::info("Scheduler: destroyed process %i", process->id);
+    }
+
+    uint Process::allocateFdEntry()
+    {
+        for (uint i = 0; i < fds.size(); i++)
+        {
+            if (!fds[i].node)
+                return i;
+        }
+
+        fds.push({.node = nullptr, .mode = 0});
+        return fds.size() - 1;
     }
 
 } // namespace Scheduler

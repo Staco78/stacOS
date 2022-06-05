@@ -42,7 +42,7 @@ namespace Scheduler
 
         if (!Devices::LAPIC::isEnable())
         {
-            Terminal::kprintf("Warn: no LAPIC: cannot start SMP");
+            Log::warn("Warn: no LAPIC: cannot start SMP");
             return;
         }
 

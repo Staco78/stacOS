@@ -26,12 +26,4 @@ extern "C"
     {
         Scheduler::exit(status);
     }
-
-    uint64 sysWrite(uint fd, void *buffer, uint64 size)
-    {
-        if (!Memory::checkAccess((uint64)buffer, size))
-            return -EFAULT;
-        Terminal::printStr((char *)buffer, size);
-        return 0;
-    }
 }

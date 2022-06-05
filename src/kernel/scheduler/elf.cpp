@@ -7,18 +7,18 @@
 
 namespace Modules
 {
-    StringHashMap<LoadedModule> map;
+    HashMap<String, LoadedModule> map;
 
     void init()
     {
-        new (&map) StringHashMap<LoadedModule>(10);
+        new (&map) HashMap<String, LoadedModule>(10);
     }
 
-    bool loadModule(fs::FileNode *file)
+    bool loadModule(fs::Node *file)
     {
         assert(file);
         Elf64_Header *header = (Elf64_Header *)kmalloc(sizeof(Elf64_Header));
-        file->read(0, sizeof(Elf64_Header), header);
+        assert(file->read(0, sizeof(Elf64_Header), header) > 0);
 
         if (header->e_ident[EI_MAG0] != ELFMAG0 || header->e_ident[EI_MAG1] != ELFMAG1 || header->e_ident[EI_MAG2] != ELFMAG2 || header->e_ident[EI_MAG3] != ELFMAG3)
         {
@@ -46,7 +46,7 @@ namespace Modules
 
         uint size = header->e_shnum * header->e_shentsize;
         Elf64_Shdr *sections = (Elf64_Shdr *)kmalloc(size);
-        file->read(header->e_shoff, size, sections);
+        assert(file->read(header->e_shoff, size, sections) > 0);
 
         uint symbolsTableIndex;
         Elf64_Sym *symbols = nullptr;
@@ -71,7 +71,7 @@ namespace Modules
 
         findSection(SHT_STRTAB, {
             char *data = (char *)kmalloc(sheader->sh_size);
-            file->read(sheader->sh_offset, sheader->sh_size, data);
+            assert(file->read(sheader->sh_offset, sheader->sh_size, data) > 0);
             if (i == header->e_shstrndx)
             {
                 assert(!sectionNames);
@@ -87,7 +87,7 @@ namespace Modules
 
         findSection(SHT_SYMTAB, {
             symbols = (Elf64_Sym *)kmalloc(sheader->sh_size);
-            file->read(sheader->sh_offset, sheader->sh_size, symbols);
+            assert(file->read(sheader->sh_offset, sheader->sh_size, symbols) > 0);
             symbolsTableIndex = i;
             break;
         });
@@ -111,7 +111,7 @@ namespace Modules
             switch (sheader->sh_type)
             {
             case SHT_PROGBITS:
-                file->read(sheader->sh_offset, sheader->sh_size, loadAddressCurrent);
+                assert(file->read(sheader->sh_offset, sheader->sh_size, loadAddressCurrent) > 0);
                 sheader->sh_addr = (uint64)loadAddressCurrent;
                 loadAddressCurrent = (void *)((uint64)loadAddressCurrent + sheader->sh_size);
                 break;
@@ -140,7 +140,14 @@ namespace Modules
                 if (symbols[i].st_shndx == SHN_UNDEF)
                 {
                     if (symbols[i].st_name != 0)
+                    {
                         symbols[i].st_value = KernelSymbols::get(table->data + symbols[i].st_name);
+                        if (symbols[i].st_value == 0)
+                        {
+                            Terminal::kprintf("Cannot load module %s: symbol not found: %s\n", file->name.c_str(), table->data + symbols[i].st_name);
+                            assert(false);
+                        }
+                    }
                 }
                 else if (symbols[i].st_shndx < SHN_LOPROC)
                 {
@@ -158,7 +165,7 @@ namespace Modules
 
         findSection(SHT_RELA, {
             Elf64_Rela *rela = (Elf64_Rela *)kmalloc(sheader->sh_size);
-            file->read(sheader->sh_offset, sheader->sh_size, rela);
+            assert(file->read(sheader->sh_offset, sheader->sh_size, rela) > 0);
 
             Elf64_Shdr *section = &sections[sheader->sh_info];
 
@@ -204,13 +211,13 @@ namespace Modules
 
 namespace ELF
 {
-    void loadExecutable(Scheduler::Process *process, fs::FileNode *file)
+    void loadExecutable(Scheduler::Process *process, fs::Node *file)
     {
         assert(file);
         assert(process);
         Log::info("Load executable %S into process %i", &file->name, process->id);
         Elf64_Header header;
-        file->read(0, sizeof(Elf64_Header), &header);
+        assert(file->read(0, sizeof(Elf64_Header), &header) > 0);
 
         if (header.e_ident[EI_MAG0] != ELFMAG0 || header.e_ident[EI_MAG1] != ELFMAG1 || header.e_ident[EI_MAG2] != ELFMAG2 || header.e_ident[EI_MAG3] != ELFMAG3)
             assert(!"Unable to load executable: invalid magic");
@@ -226,7 +233,7 @@ namespace ELF
 
         uint segmentsSize = header.e_phnum * header.e_phentsize;
         Elf64_Phdr *segments = (Elf64_Phdr *)kmalloc(segmentsSize);
-        file->read(header.e_phoff, segmentsSize, segments);
+        assert(file->read(header.e_phoff, segmentsSize, segments) > 0);
 
         for (uint i = 0; i < header.e_phnum; i++)
         {
@@ -243,7 +250,8 @@ namespace ELF
             uint64 physicalAddress = Memory::allocSpace(segment->p_vaddr, segment->p_memsz / 4096 + (segment->p_memsz % 4096 != 0), flags, &process->addressSpace);
             uint64 kernelVirtualAddress = Memory::Virtual::getKernelVirtualAddress(physicalAddress);
 
-            file->read(segment->p_offset, segment->p_filesz, (void *)kernelVirtualAddress);
+            if (segment->p_filesz > 0)
+                assert(file->read(segment->p_offset, segment->p_filesz, (void *)kernelVirtualAddress) > 0);
 
             memset((void *)(kernelVirtualAddress + segment->p_filesz), 0, segment->p_memsz - segment->p_filesz);
         }

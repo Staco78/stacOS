@@ -179,7 +179,7 @@ namespace Interrupts
             Terminal::safe::print(") at ");
             Terminal::safe::printHex(address);
             Terminal::safe::print("\n");
-            dump(state);
+            // dump(state);
             panic("Page fault");
         }
 

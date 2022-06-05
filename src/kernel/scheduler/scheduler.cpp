@@ -102,13 +102,19 @@ namespace Scheduler
         new (&cpu->threadsToDestroy) Synchronized<Queue<Thread *>>();
         cpu->threadsToDestroy.realloc(512);
 
+        if (cpu->isBsp)
+        {
+            Interrupts::IDT::setEntry(0xF0, _schedulerYieldHandler);
+            new (&kernelProcess.threads) Vector<Thread *>(10);
+            kernelProcess.threads.clear();
+            new (&kernelProcess.fds) Vector<FdEntry>(10);
+            kernelProcess.threads.clear();
+        }
+
         cpu->idleThread = createThread(&kernelProcess, (uint64)idleTask, false);
         cpu->currentThread = cpu->idleThread;
 
         cpu->threads.push(createThread(&kernelProcess, (uint64)threadDestroyerOfThreads, false));
-
-        if (cpu->isBsp)
-            Interrupts::IDT::setEntry(0xF0, _schedulerYieldHandler);
     }
 
     extern "C" __attribute__((noreturn)) void schedulerTickHandler(uint64 rsp)

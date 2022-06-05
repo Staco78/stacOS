@@ -1,6 +1,6 @@
-#include <drivers/diskDriver.h>
 #include <fs/fs.h>
 #include <lib/vector.h>
+#include <errno.h>
 
 namespace fs
 {
@@ -17,6 +17,9 @@ namespace fs
             char mtime[12];
             uint64 checksum;
             uint8 typeflag;
+
+            // custom
+            Node *node;
         } __attribute__((packed));
 
         uint64 getsize(const char *in)
@@ -32,7 +35,7 @@ namespace fs
             return size;
         }
 
-        class File : public FileNode
+        class File : public Node
         {
             TarFileHeader *m_header;
             void *m_start;
@@ -41,13 +44,14 @@ namespace fs
         public:
             File(TarFileHeader *header)
             {
+                name = header->filename;
+                type = FILE;
                 m_header = header;
                 m_start = (void *)(((uint64)m_header | 0x1FF) + 1);
                 m_size = getsize(header->size);
-                name = header->filename;
             }
 
-            int64 read(uint64 offset, uint64 size, void *buffer)
+            int64 read(uint64 offset, uint size, void *buffer)
             {
                 uint64 sizeToRead = m_size;
                 if (size < sizeToRead)
@@ -56,24 +60,38 @@ namespace fs
                 return sizeToRead;
             }
 
-            uint64 getSize()
+            uint64 size()
             {
                 return m_size;
             }
+
+            int64 open(uint mode)
+            {
+                if (mode & OpenMode::WRITE)
+                    return -EROFS;
+                return 0;
+            }
+
+            int64 close()
+            {
+                return 0;
+            }
         };
 
-        class RootNode : public MountNode
+        class RootNode : public Node
         {
         private:
             Vector<TarFileHeader *> files;
 
         public:
-            RootNode(InitrdDriver *driver, const String &path) : MountNode(path)
+            RootNode(void *buffer, uint64 size, const String &name)
             {
+                Node::name = name;
+                type = DIRECTORY;
                 uint64 i = 0;
-                while (i < driver->getSize())
+                while (i < size)
                 {
-                    TarFileHeader *file = (TarFileHeader *)(driver->buffer + i);
+                    TarFileHeader *file = (TarFileHeader *)((uint64)buffer + i);
                     if (file->filename[0] == '\0')
                         break;
 
@@ -85,14 +103,31 @@ namespace fs
                 }
             }
 
-            Node *findEntry(const String &name)
+            int64 findEntry(const String &name, Node *&out)
             {
                 for (TarFileHeader *file : files)
                 {
                     if (name == file->filename)
-                        return new File(file);
+                    {
+                        if (!file->node)
+                            file->node = new File(file);
+                        out = file->node;
+                        return 0;
+                    }
                 }
-                return nullptr;
+                return -ENOENT;
+            }
+
+            int64 open(uint mode)
+            {
+                if (mode & OpenMode::WRITE)
+                    return -EROFS;
+                return 0;
+            }
+
+            int64 close()
+            {
+                return 0;
             }
         };
 
@@ -100,14 +135,9 @@ namespace fs
         {
             MultibootInformations::Module *initrd = MultibootInformations::findModule("initrd");
             assert(initrd);
-            InitrdDriver *initrdDriver = new InitrdDriver((void *)Memory::Virtual::getKernelVirtualAddress(initrd->start), initrd->end - initrd->start);
-            fs::mount("/initrd", fs::Initrd::createRootNode(initrdDriver, "/initrd"));
+            fs::mountNode("/initrd", new RootNode((void *)Memory::Virtual::getKernelVirtualAddress(initrd->start), initrd->end - initrd->start, "initrd"));
         }
 
-        MountNode *createRootNode(InitrdDriver *driver, const String &path)
-        {
-            return new RootNode(driver, path);
-        }
     } // namespace Tar
 
 } // namespace fs

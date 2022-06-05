@@ -1,12 +1,14 @@
 [bits 64]
 section .text
 
-
+extern log
+txt db "invalid", 0
+vld db "valid", 0
 
 callSelected:
 cmp rax, MAX_SYSCALL
 jg notFound
-mov r10, rcx
+mov rcx, r10
 call [table_start + rax * 8]
 ret
 notFound:
@@ -43,13 +45,15 @@ syscall_entry:
 
 
 section .rodata
+
 %macro defineCall 1
 extern %1
 dq %1
 %endmacro
 
-
 table_start:
 defineCall sysExit
+defineCall sysOpen
 defineCall sysWrite
+defineCall sysRead
 MAX_SYSCALL equ ($ - table_start) / 8 - 1

@@ -13,7 +13,7 @@ KERNEL_OBJS=$(KERNEL_ASM_SCRS:.asm=.o) $(KERNEL_CPP_SCRS:.cpp=.o) ${KERNEL_C_SCR
 MODULES_SRCS=$(shell find ./src/modules/ -type d -not -path "./src/modules/")
 MODULES=$(shell find ./src/modules/ -type d -not -path "./src/modules/" | cut -d/ -f4 | awk '$$0="initrd/"$$0".ko"')
 
-QEMU_FLAGS=-cdrom myos.iso -smp 4 -cpu max,+pdpe1gb -m 32 -no-reboot -no-shutdown
+QEMU_FLAGS=-cdrom myos.iso -smp 4 -cpu max,+pdpe1gb -m 256 -no-reboot -no-shutdown
 
 all: qemu
 
@@ -65,10 +65,13 @@ initrd/symbols: myos.bin
 	@echo creating symbols...
 	$(shell bash -c "nm -g $< | ./scripts/createSymbols.sh")
 
+initrd/ext2.bin:
+	$(shell "mkfs.ext2 -d ext2/ initrd/ext2.bin 10M -F -O ^filetype")
 
-initrd.tar: $(MODULES) initrd/symbols app
+
+initrd.tar: $(MODULES) initrd/symbols app initrd/ext2.bin
 	@echo creating initrd...
-	$(shell cd initrd && tar -cf ../initrd.tar * -H posix && cd ..)
+	$(shell cd initrd && tar -cf ../initrd.tar * -H gnu --no-xattrs && cd ..)
 
 myos.bin: $(KERNEL_OBJS)
 	@echo $(KERNEL_ASM_SCRS)

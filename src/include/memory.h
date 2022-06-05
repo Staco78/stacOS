@@ -71,7 +71,7 @@ namespace Memory
             return address & 1UL << 47 ? address | 0xFFFF000000000000 : address & 0xFFFFFFFFFFFF;
         }
         void mapPage(uint64 physicalAddress, uint64 virtualAddress, uint64 flags, AddressSpace *addressSpace = nullptr, bool lock = true);
-        uint64 unmapPage(uint64 virtualAddress, AddressSpace* addressSpace = nullptr);
+        uint64 unmapPage(uint64 virtualAddress, AddressSpace *addressSpace = nullptr);
         uint64 findFreePages(uint64 size = 1, bool user = false, bool lock = true);
         void *allocModuleSpace(uint64 size);
         AddressSpace createAddressSpace();
@@ -95,4 +95,5 @@ namespace Memory
     void releasePages(uint64 address, uint size, Virtual::AddressSpace *addressSpace = nullptr);
 
     bool checkAccess(uint64 address, uint64 size, bool write = false, Virtual::AddressSpace *addressSpace = nullptr);
+    bool checkStrAccess(const char *str, Virtual::AddressSpace *addressSpace = nullptr);
 } // namespace Memory

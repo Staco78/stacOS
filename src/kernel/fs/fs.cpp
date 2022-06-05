@@ -1,29 +1,58 @@
 #include <fs/fs.h>
+#include <fs/drivers.h>
 #include <log.h>
 #include <lib/vector.h>
+#include <errno.h>
 
 namespace fs
 {
 
-    bool Node::isFile() { return false; }
-    bool Node::isDirectory() { return false; }
-
-    bool FileNode::isFile() { return true; }
-    int64 FileNode::read(uint64 offset, uint64 size, void *buffer)
+    int64 Node::open(uint mode)
     {
-        Log::warn("Trying to read base fileNode");
-        return -1;
-    }
-    uint64 FileNode::getSize()
-    {
-        assert(false);
+        Log::warn("Trying to open base node");
+        return -EINVAL;
     }
 
-    bool DirectoryNode::isDirectory() { return true; }
-    Node *DirectoryNode::findEntry(const String &name) { return nullptr; }
+    int64 Node::close()
+    {
+        Log::warn("Trying to close base node");
+        return -EINVAL;
+    }
 
-    Vector<MountNode *> mountPoints;
-    MountNode *rootMoutPoint = nullptr;
+    int64 Node::read(uint64 offset, uint size, void *buffer)
+    {
+        Log::warn("Trying to read base node");
+        return -EINVAL;
+    }
+    int64 Node::write(uint64 offset, uint size, void *buffer)
+    {
+        Log::warn("Trying to write base node");
+        return -EINVAL;
+    }
+    int64 Node::readDir(uint offset, uint count, uint size, DirEntry *buffer)
+    {
+        Log::warn("Trying to readDir base node");
+        return -EINVAL;
+    }
+    uint64 Node::size()
+    {
+        Log::warn("Trying to get base node size");
+        return 0;
+    }
+
+    int64 Node::findEntry(const String &name, Node *&out)
+    {
+        Log::warn("Trying to find base node entry");
+        return -EINVAL;
+    }
+
+    Vector<MountPoint> mountPoints;
+    MountPoint rootMoutPoint;
+
+    void init()
+    {
+        new (&mountPoints) Vector<MountPoint>();
+    }
 
     bool isPathSubset(const Vector<String> &subset, const Vector<String> &total)
     {
@@ -39,66 +68,84 @@ namespace fs
         return true;
     }
 
-    MountNode *findMountPoint(const Vector<String> &pathComponents)
+    MountPoint *findMountPoint(const Vector<String> &pathComponents)
     {
         if (pathComponents.size() == 1 && pathComponents[0] == "/")
-            return rootMoutPoint;
+            return &rootMoutPoint;
 
-        MountNode *betterNode = nullptr;
+        MountPoint *betterNode = nullptr;
         uint betterMatch = 0;
-        for (MountNode *node : mountPoints)
+        for (MountPoint &mountPoint : mountPoints)
         {
-            Vector<String> nodepathComponents = node->path.split('/');
+            Vector<String> nodepathComponents = mountPoint.path.split('/');
             if (isPathSubset(nodepathComponents, pathComponents))
             {
-                if (node->path.size() > betterMatch)
+                if (mountPoint.path.size() > betterMatch)
                 {
-                    betterNode = node;
-                    betterMatch = node->path.size();
+                    betterNode = &mountPoint;
+                    betterMatch = mountPoint.path.size();
                 }
             }
         }
         return betterNode;
     }
 
-    MountNode *findMountPoint(const String &path)
+    MountPoint *findMountPoint(const String &path)
     {
         Vector<String> pathComponents = path.split('/');
         return findMountPoint(pathComponents);
     }
 
-    void mount(const String &path, MountNode *node)
+    int mountNode(const String &path, Node *node)
     {
-        mountPoints.push(node);
+        MountPoint mountPoint = {.node = node, .path = path};
+        mountPoints.push(mountPoint);
         if (path == "/")
-            rootMoutPoint = node;
+            rootMoutPoint = mountPoint;
         Log::info("Mount %s", path.c_str());
+        return 0;
     }
 
-    Node *resolvePath(const String &path)
+    int mount(const String &path, Node *device)
     {
-        assert(!path.empty());
-        assert(path[0] == '/');
+        if (!device)
+            return -ENODEV;
+        FsDriver *driver = findFsDriver(device);
+        if (!driver)
+            return -ENODEV;
 
-        MountNode *mountPoint = findMountPoint(path);
-        assert(mountPoint);
+        return mountNode(path, driver->mount(device, path.slice(path.findLastIndex('/'), path.size())));
+    }
+
+    int64 resolvePath(const String &path, Node *&out)
+    {
+        if (path.empty())
+            return -ENOENT;
+        if (path[0] != '/')
+            return -ENOENT;
+
+        MountPoint *mountPoint = findMountPoint(path);
+        if (!mountPoint)
+            return -ENOENT;
 
         Vector<String> newPathComponents = path.slice(mountPoint->path.size(), path.size()).split('/');
 
-        Node *currentNode = mountPoint;
+        Node *currentNode = mountPoint->node;
         for (uint i = 0; i < newPathComponents.size(); i++)
         {
             String &component = newPathComponents[i];
-            if (!currentNode->isDirectory())
-                return nullptr;
+            if (!(currentNode->type & NodeType::DIRECTORY))
+                return -ENOTDIR;
 
-            DirectoryNode *dir = (DirectoryNode *)currentNode;
-            currentNode = dir->findEntry(component);
-            if (!currentNode)
-                return nullptr;
+            currentNode->open(OpenMode::READ);
+
+            Node *old_node = currentNode;
+            ERROR_CHECK(currentNode->findEntry(component, currentNode));
+            old_node->close();
         }
 
-        return currentNode;
+        out = currentNode;
+        return 0;
     }
 
 } // namespace fs

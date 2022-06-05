@@ -3,60 +3,74 @@
 #include <lib/string.h>
 #include <log.h>
 #include <types.h>
-#include <drivers/diskDriver.h>
+
+#define ERROR_CHECK(func) ({int64 e = func; if (e < 0) return e; e; })
 
 namespace fs
 {
-    enum class NodeType
+    enum NodeType
     {
         FILE = 1,
         DIRECTORY = 2,
     };
 
+    namespace OpenMode
+    {
+        enum
+        {
+            READ = 1,
+            WRITE = 2
+        };
+    } // namespace OpenMode
+
+    struct DirEntry
+    {
+        uint offset; // offset to next entry
+        uint type;   // file type
+        char name[]; // null-terminated file name
+    };
+
     class Node
     {
     public:
-        NodeType type;
-        Node *parent = nullptr;
+        virtual ~Node() = default;
+
+        uint type;
         String name;
 
-        virtual bool isFile();
-        virtual bool isDirectory();
+        virtual int64 open(uint mode);
+        virtual int64 close();
+        virtual int64 read(uint64 offset, uint size, void *buffer);
+        virtual int64 write(uint64 offset, uint size, void *buffer);
+        virtual int64 readDir(uint offset, uint count, uint size, DirEntry *buffer);
+        virtual int64 findEntry(const String &name, Node *&out);
+        virtual uint64 size();
+
+    protected:
+        uint refCount = 0;
     };
 
-    class FileNode : public Node
+    struct MountPoint
     {
-    public:
-        virtual int64 read(uint64 offset, uint64 size, void *buffer);
-        virtual uint64 getSize();
-        bool isFile();
-    };
-
-    class DirectoryNode : public Node
-    {
-    public:
-        virtual Node *findEntry(const String &name) = 0;
-        bool isDirectory();
-    };
-
-    class MountNode : public DirectoryNode
-    {
-    public:
+        Node *node;
         String path;
-        MountNode(const String &path)
-        {
-            MountNode::path = path;
-        }
     };
 
-    MountNode *findMountPoint(const String &path);
-    void mount(const String &path, MountNode *node);
-    Node *resolvePath(const String &path);
+    void init();
+    MountPoint *findMountPoint(const String &path);
+    int mountNode(const String &path, Node *node);
+    int mount(const String &path, Node *device);
+    int64 resolvePath(const String &path, Node *&out);
+
+    namespace DeviceManager
+    {
+        void init();
+        void registerDevice(Node *node);
+    }
 
     namespace Initrd
     {
         void init();
-        MountNode *createRootNode(InitrdDriver *driver, const String &path);
     } // namespace Tar
 
 } // namespace fs

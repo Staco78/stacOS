@@ -9,6 +9,7 @@ class List
 private:
     typedef struct Node
     {
+        Node(const T &_data, Node *_next) : data(_data), next(_next) {}
         T data;
         Node *next;
     } Node;
@@ -73,19 +74,13 @@ public:
     {
         if (head == nullptr)
         {
-            head = (Node *)kmalloc(sizeof(Node));
-            new (head) Node();
-            head->data = data;
-            head->next = nullptr;
+            head = new Node(data, nullptr);
             last = head;
         }
         else
         {
             assert(last);
-            last->next = (Node *)kmalloc(sizeof(Node));
-            new (last->next) Node();
-            last->next->data = data;
-            last->next->next = nullptr;
+            last->next = new Node(data, nullptr);
             last = last->next;
         }
 

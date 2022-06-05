@@ -71,6 +71,30 @@ void String::operator+=(const char c)
     push(c);
 }
 
+String String::operator+(const char c) const
+{
+    String str(*this);
+    str += c;
+    return str;
+}
+
+String String::operator+(const String &str) const
+{
+    String s(*this);
+    s.realloc(size() + str.size());
+    memcpy(s.begin() + size(), str.begin(), str.size());
+    return s;
+}
+
+String String::operator+(const char *str) const
+{
+    String s(*this);
+    uint len = strlen(str);
+    s.realloc(size() + len);
+    memcpy(s.begin(), str, len);
+    return s;
+}
+
 Vector<String> String::split(const char delim) const
 {
     Vector<String> result;
@@ -99,14 +123,21 @@ Vector<String> String::split(const char delim) const
 
 String String::slice(uint start, uint end) const
 {
+    if (end - start == 0)
+        return String("");
     assert(start < size());
     assert(end > start);
     return String(begin() + start, end - start);
 }
 
-String String::operator+(const char c) const
+int64 String::findLastIndex(const char c) const
 {
-    String str(*this);
-    str += c;
-    return str;
+    uint i = size() - 1;
+    for (; i >= 0; i--)
+    {
+        if (_data[i] == c)
+            return i;
+    }
+
+    return -1;
 }
